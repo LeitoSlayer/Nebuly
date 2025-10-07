@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "667171624173",
+    "project_id": "nebuly-6eec1",
+    "storage_bucket": "nebuly-6eec1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:667171624173:android:ac63f99bcda580383528e4",
+        "android_client_info": {
+          "package_name": "com.utadeo.nebuly"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAO7MYb4hhWbVmY25_E6Ems-z5UOzSRIlo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
