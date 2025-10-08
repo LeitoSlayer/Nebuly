@@ -22,6 +22,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.utadeo.nebuly.R
 import com.utadeo.nebuly.utils.validateLoginInputs
 import com.utadeo.nebuly.utils.loginUser
+import com.utadeo.nebuly.components.BackButton
+import com.utadeo.nebuly.components.ActionButton
 
 @Composable
 fun LoginScreen(
@@ -67,16 +69,7 @@ fun LoginScreen(
                     .padding(top = 20.dp, bottom = 60.dp),
                 horizontalArrangement = Arrangement.Start
             ) {
-                IconButton(
-                    onClick = onBackClick,
-                    modifier = Modifier.size(65.dp)
-                ) {
-                    Image(
-                        painter = painterResource(R.drawable.boton_volver),
-                        contentDescription = "Volver",
-                        modifier = Modifier.size(90.dp)
-                    )
-                }
+                BackButton(onClick = onBackClick)
             }
 
             // Logo
@@ -183,7 +176,9 @@ fun LoginScreen(
             }
 
             // Botón CONTINUAR
-            Button(
+            ActionButton(
+                text = "CONTINUAR",
+                isLoading = isLoading,
                 onClick = {
                     if (validateLoginInputs(email, password)) {
                         loginUser(auth, email, password, context) { loading, error ->
@@ -193,33 +188,9 @@ fun LoginScreen(
                     } else {
                         errorMessage = "Completar todos los campos correctamente"
                     }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(70.dp),
-                enabled = !isLoading,
-                shape = MaterialTheme.shapes.extraLarge, // Bordes redondeados
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White.copy(alpha = 0.5f), // Blanco transparente
-                    contentColor = Color.Black // Texto blanco
-                )
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = Color.White
-                    )
-                } else {
-                    Text(
-                        "CONTINUAR",
-                        fontSize = 27.sp,
-                        fontWeight = FontWeight.Medium,
-                        fontFamily = aoboshiOne
-                    )
                 }
-            }
+            )
 
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

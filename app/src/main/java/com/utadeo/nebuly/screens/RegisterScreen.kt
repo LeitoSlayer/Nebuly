@@ -22,6 +22,8 @@ import com.google.firebase.auth.FirebaseAuth
 import com.utadeo.nebuly.R
 import com.utadeo.nebuly.utils.validateRegisterInputs
 import com.utadeo.nebuly.utils.registerUser
+import com.utadeo.nebuly.components.BackButton
+import com.utadeo.nebuly.components.ActionButton
 
 @Composable
 fun RegisterScreen(
@@ -68,16 +70,7 @@ fun RegisterScreen(
                     .padding(top = 20.dp, bottom = 60.dp),
                 horizontalArrangement = Arrangement.Start
             ) {
-                IconButton(
-                    onClick = onBackClick,
-                    modifier = Modifier.size(65.dp)
-                ) {
-                    Image(
-                        painter = painterResource(R.drawable.boton_volver),
-                        contentDescription = "Volver",
-                        modifier = Modifier.size(90.dp)
-                    )
-                }
+                BackButton(onClick = onBackClick)
             }
 
             Image(
@@ -218,7 +211,9 @@ fun RegisterScreen(
             }
 
             // Botón de Registro
-            Button(
+            ActionButton(
+                text = "REGISTRARSE",
+                isLoading = isLoading,
                 onClick = {
                     if (validateRegisterInputs(email, password, username)) {
                         registerUser(auth, email, password, username, context) { loading, error ->
@@ -228,31 +223,8 @@ fun RegisterScreen(
                     } else {
                         errorMessage = "Completar todos los campos correctamente"
                     }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                enabled = !isLoading,
-                shape = MaterialTheme.shapes.extraLarge, // Bordes redondeados
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White.copy(alpha = 0.5f),
-                    contentColor = Color.Black
-                )
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = Color.White
-                    )
-                } else {
-                    Text(
-                        "REGISTRARSE",
-                        fontSize = 25.sp,
-                        fontWeight = FontWeight.Medium,
-                        fontFamily = aoboshiOne
-                    )
                 }
-            }
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
