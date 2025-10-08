@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.utadeo.nebuly.R
+import com.utadeo.nebuly.components.StartButton
 
 @Composable
 fun WelcomeScreen(
@@ -74,45 +75,10 @@ fun WelcomeScreen(
             Spacer(modifier = Modifier.height(160.dp))
 
             // Botón de Iniciar Sesión
-            Button(
-                onClick = onLoginClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp)
-                    .padding(bottom = 7.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White.copy(alpha = 0.6f),
-                    contentColor = Color.Black
-                ),
-
-            ) {
-                Text(
-                    "INICIAR SESIÓN",
-                    fontSize = 25.sp,
-                    fontWeight = FontWeight.Medium,
-                    fontFamily = aoboshiOne
-                )
-            }
+            StartButton(text = "INICIAR SESIÓN", onClick = onLoginClick)
 
             // Botón de Registrarse
-            Button(
-                onClick = onRegisterClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp)
-                    .padding(bottom = 7.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White.copy(alpha = 0.6f),
-                    contentColor = Color.Black
-                )
-            ) {
-                Text(
-                    "REGISTRARSE",
-                    fontSize = 25.sp,
-                    fontWeight = FontWeight.Medium,
-                    fontFamily = aoboshiOne
-                )
-            }
+            StartButton(text = "REGISTRARSE", onClick = onRegisterClick)
         }
     }
 }
