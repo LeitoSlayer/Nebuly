@@ -54,7 +54,7 @@ fun WelcomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
@@ -68,18 +68,18 @@ fun WelcomeScreen(
                 fontWeight = FontWeight.Bold,
                 fontFamily = stardosStencil,
                 color = Color.White,
-                modifier = Modifier.padding(bottom = 50.dp)
+                modifier = Modifier.padding(bottom = 40.dp)
             )
 
             Spacer(modifier = Modifier.height(160.dp))
 
-            // Botón de Iniciar Sesión - Blanco transparente
+            // Botón de Iniciar Sesión
             Button(
                 onClick = onLoginClick,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(60.dp)
-                    .padding(bottom = 5.dp),
+                    .padding(bottom = 7.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White.copy(alpha = 0.6f),
                     contentColor = Color.Black
@@ -99,7 +99,8 @@ fun WelcomeScreen(
                 onClick = onRegisterClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(60.dp),
+                    .height(60.dp)
+                    .padding(bottom = 7.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White.copy(alpha = 0.6f),
                     contentColor = Color.Black
