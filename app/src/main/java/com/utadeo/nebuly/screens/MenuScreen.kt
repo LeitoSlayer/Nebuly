@@ -1,0 +1,92 @@
+package com.utadeo.nebuly.screens.menu
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import com.google.firebase.auth.FirebaseAuth
+import com.utadeo.nebuly.R
+import com.utadeo.nebuly.components.BackButton
+import com.utadeo.nebuly.components.MenuCard
+
+@Composable
+fun MenuScreen(
+    auth: FirebaseAuth,
+    onBackClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.fillMaxSize()
+    ) {
+        // Fondo espacial
+        Image(
+            painter = painterResource(id = R.drawable.fondo_inicio_sesion),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+
+        // Contenido con scroll
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(100.dp)) // Más espacio arriba
+
+            // Tarjeta Aprender
+            MenuCard(
+                imageRes = R.drawable.menu_aprender,
+                title = "Aprender",
+                onClick = { println("Click en Aprender") }
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Tarjeta Investigar
+            MenuCard(
+                imageRes = R.drawable.menu_investigar,
+                title = "Investigar",
+                onClick = { println("Click en Investigar") }
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Tarjeta Tienda
+            MenuCard(
+                imageRes = R.drawable.menu_tienda,
+                title = "Tienda",
+                onClick = { println("Click en Tienda") }
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Tarjeta Logros
+            MenuCard(
+                imageRes = R.drawable.menu_logros,
+                title = "Logros",
+                onClick = { println("Click en Logros") }
+            )
+
+            Spacer(modifier = Modifier.height(100.dp)) // Espacio final para scroll completo
+        }
+
+        // Botón de retroceso
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 20.dp, start = 20.dp),
+            contentAlignment = Alignment.TopStart
+        ) {
+            BackButton(onClick = onBackClick)
+        }
+    }
+}
