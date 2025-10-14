@@ -20,6 +20,7 @@ import com.utadeo.nebuly.components.UserHeader
 fun MenuScreen(
     auth: FirebaseAuth,
     onBackClick: () -> Unit,
+    onStoreClick: () -> Unit = {}, // 🆕 Callback para la tienda
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -43,7 +44,7 @@ fun MenuScreen(
         ) {
             Spacer(modifier = Modifier.height(80.dp))
 
-            // ⭐ NUEVO: Header del usuario
+            // Header del usuario (ahora muestra monedas en lugar de nivel)
             UserHeader(
                 auth = auth,
                 modifier = Modifier.padding(bottom = 20.dp)
@@ -67,11 +68,11 @@ fun MenuScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Tarjeta Tienda
+            // 🆕 Tarjeta Tienda - Ahora con funcionalidad
             MenuCard(
                 imageRes = R.drawable.menu_tienda,
                 title = "Tienda",
-                onClick = { println("Click en Tienda") }
+                onClick = onStoreClick // Navegar a la tienda
             )
 
             Spacer(modifier = Modifier.height(20.dp))

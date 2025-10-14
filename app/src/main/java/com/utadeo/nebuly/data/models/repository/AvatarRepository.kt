@@ -11,6 +11,9 @@ class AvatarRepository {
     private val avatarsCollection = firestore.collection("avatars")
     private val usersCollection = firestore.collection("users")
 
+    /**
+     * Obtiene todos los avatares sin filtrar
+     */
     suspend fun getAllAvatars(): Result<List<Avatar>> {
         return try {
             Log.d("AvatarRepository", "Iniciando carga de avatares...")
@@ -20,17 +23,18 @@ class AvatarRepository {
 
             val avatars = snapshot.documents.mapNotNull { doc ->
                 try {
-                    // Obtenemos los datos manualmente para mayor control
                     val category = doc.getString("category") ?: "default"
                     val imageUrl = doc.getString("imageUrl") ?: ""
                     val requiredLevel = doc.getLong("requiredLevel")?.toInt() ?: 1
+                    val requiredCoins = doc.getLong("requiredCoins")?.toInt() ?: 500
 
-                    Log.d("AvatarRepository", "Avatar cargado: ${doc.id}, imageUrl: $imageUrl, level: $requiredLevel")
+                    Log.d("AvatarRepository", "Avatar cargado: ${doc.id}, imageUrl: $imageUrl, coins: $requiredCoins")
 
                     Avatar(
                         id = doc.id,
                         imageUrl = imageUrl,
                         requiredLevel = requiredLevel,
+                        requiredCoins = requiredCoins,
                         category = category,
                         isLocked = true // Por defecto bloqueado
                     )
@@ -53,6 +57,10 @@ class AvatarRepository {
         }
     }
 
+    /**
+     * Obtiene los avatares con el estado de desbloqueo para un usuario específico
+     * Ahora basado en si el usuario los compró, no en nivel
+     */
     suspend fun getAvatarsForUser(userId: String): Result<List<Avatar>> {
         return try {
             Log.d("AvatarRepository", "Cargando avatares para usuario: $userId")
@@ -72,7 +80,7 @@ class AvatarRepository {
                 return Result.failure(Exception("Usuario no encontrado"))
             }
 
-            Log.d("AvatarRepository", "Usuario encontrado - Level: ${user.level}, Avatares desbloqueados: ${user.unlockedAvatars}")
+            Log.d("AvatarRepository", "Usuario encontrado - Coins: ${user.coins}, Avatares desbloqueados: ${user.unlockedAvatars}")
 
             // Obtenemos todos los avatares
             val avatarsSnapshot = avatarsCollection.get().await()
@@ -83,17 +91,18 @@ class AvatarRepository {
                     val category = doc.getString("category") ?: "default"
                     val imageUrl = doc.getString("imageUrl") ?: ""
                     val requiredLevel = doc.getLong("requiredLevel")?.toInt() ?: 1
+                    val requiredCoins = doc.getLong("requiredCoins")?.toInt() ?: 500
 
-                    // Verificar si está desbloqueado
-                    val isUnlocked = user.unlockedAvatars.contains(doc.id) ||
-                            user.level >= requiredLevel
+                    // 🆕 Ahora solo verificamos si está en la lista de desbloqueados
+                    val isUnlocked = user.unlockedAvatars.contains(doc.id)
 
-                    Log.d("AvatarRepository", "Avatar: ${doc.id}, Level req: $requiredLevel, User level: ${user.level}, Desbloqueado: $isUnlocked")
+                    Log.d("AvatarRepository", "Avatar: ${doc.id}, Precio: $requiredCoins, Desbloqueado: $isUnlocked")
 
                     Avatar(
                         id = doc.id,
                         imageUrl = imageUrl,
                         requiredLevel = requiredLevel,
+                        requiredCoins = requiredCoins,
                         category = category,
                         isLocked = !isUnlocked
                     )
@@ -116,6 +125,9 @@ class AvatarRepository {
         }
     }
 
+    /**
+     * Establece el avatar actual del usuario
+     */
     suspend fun setCurrentAvatar(userId: String, avatarId: String): Result<Boolean> {
         return try {
             Log.d("AvatarRepository", "Actualizando avatar para usuario: $userId -> $avatarId")
@@ -132,6 +144,45 @@ class AvatarRepository {
         }
     }
 
+    /**
+     * Obtiene un avatar específico por su ID
+     */
+    suspend fun getAvatarById(avatarId: String): Result<Avatar> {
+        return try {
+            Log.d("AvatarRepository", "Obteniendo avatar: $avatarId")
+
+            val doc = avatarsCollection.document(avatarId).get().await()
+
+            if (!doc.exists()) {
+                Log.e("AvatarRepository", "Avatar no encontrado")
+                return Result.failure(Exception("Avatar no encontrado"))
+            }
+
+            val category = doc.getString("category") ?: "default"
+            val imageUrl = doc.getString("imageUrl") ?: ""
+            val requiredLevel = doc.getLong("requiredLevel")?.toInt() ?: 1
+            val requiredCoins = doc.getLong("requiredCoins")?.toInt() ?: 500
+
+            val avatar = Avatar(
+                id = doc.id,
+                imageUrl = imageUrl,
+                requiredLevel = requiredLevel,
+                requiredCoins = requiredCoins,
+                category = category,
+                isLocked = true
+            )
+
+            Log.d("AvatarRepository", "Avatar obtenido exitosamente")
+            Result.success(avatar)
+        } catch (e: Exception) {
+            Log.e("AvatarRepository", "Error al obtener avatar", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Obtiene información del usuario
+     */
     suspend fun getUser(userId: String): Result<User> {
         return try {
             Log.d("AvatarRepository", "Obteniendo usuario: $userId")
@@ -146,7 +197,7 @@ class AvatarRepository {
             val user = doc.toObject(User::class.java)
 
             if (user != null) {
-                Log.d("AvatarRepository", "Usuario obtenido - Level: ${user.level}, CurrentAvatar: ${user.currentAvatarId}")
+                Log.d("AvatarRepository", "Usuario obtenido - Coins: ${user.coins}, CurrentAvatar: ${user.currentAvatarId}")
                 Result.success(user)
             } else {
                 Log.e("AvatarRepository", "No se pudo convertir el documento a User")

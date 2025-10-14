@@ -56,7 +56,9 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation("com.github.bumptech.glide:glide:5.0.5")
     annotationProcessor("com.github.bumptech.glide:compiler:5.0.5")
-
+    implementation("com.google.accompanist:accompanist-pager:0.30.1")
+    implementation("com.google.accompanist:accompanist-pager-indicators:0.30.1")
+    implementation("io.coil-kt:coil-compose:2.4.0")
 
 
     testImplementation(libs.junit)
