@@ -2,17 +2,16 @@ package com.utadeo.nebuly.navigation
 
 import androidx.compose.runtime.*
 import com.google.firebase.auth.FirebaseAuth
-import com.utadeo.nebuly.screens.WelcomeScreen
+import com.utadeo.nebuly.screens.ComienzoScreen // ✅ Nueva importación
 import com.utadeo.nebuly.screens.LoginScreen
 import com.utadeo.nebuly.screens.RegisterScreen
-import com.utadeo.nebuly.screens.avatar.AvatarSelectionScreen
+import com.utadeo.nebuly.screens.WelcomeScreen
 
-// ✅ Estados para controlar la navegación
 sealed class Screen {
     object Welcome : Screen()
     object Login : Screen()
     object Register : Screen()
-    data class AvatarSelection(val userId: String) : Screen() // ✅ NUEVO: Pantalla de avatares con userId
+    object Comienzo : Screen() // ✅ NUEVA pantalla
 }
 
 @Composable
@@ -28,25 +27,24 @@ fun AppNavigation(auth: FirebaseAuth) {
         is Screen.Login -> LoginScreen(
             auth = auth,
             onBackClick = { currentScreen = Screen.Welcome },
-            onNavigateToRegister = { currentScreen = Screen.Register }
+            onNavigateToRegister = { currentScreen = Screen.Register },
+            onNavigateToComienzo = { currentScreen = Screen.Comienzo } // ✅ Nuevo callback
         )
 
         is Screen.Register -> RegisterScreen(
             auth = auth,
             onBackClick = { currentScreen = Screen.Welcome },
-            onNavigateToLogin = { currentScreen = Screen.Login },
-            onNavigateToAvatarSelection = { userId -> // ✅ NUEVO callback
-                currentScreen = Screen.AvatarSelection(userId)
-            }
+            onNavigateToLogin = { currentScreen = Screen.Login }
         )
 
-        // ✅ NUEVA PANTALLA: Selección de avatares
-        is Screen.AvatarSelection -> {
-            val userId = (currentScreen as Screen.AvatarSelection).userId
-            AvatarSelectionScreen(
-                userId = userId,
-                onBackClick = { currentScreen = Screen.Register }
-            )
-        }
+        // ✅ NUEVA PANTALLA: Comienzo
+        is Screen.Comienzo -> ComienzoScreen(
+            onBackClick = { currentScreen = Screen.Login },
+            onContinueClick = {
+                // Aquí puedes navegar a la siguiente pantalla principal
+                // Por ejemplo: currentScreen = Screen.Home
+                println("Navegar a pantalla principal desde Comienzo")
+            }
+        )
     }
 }

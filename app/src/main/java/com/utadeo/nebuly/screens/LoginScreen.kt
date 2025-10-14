@@ -29,7 +29,8 @@ import com.utadeo.nebuly.components.ActionButton
 fun LoginScreen(
     auth: FirebaseAuth,
     onBackClick: () -> Unit,
-    onNavigateToRegister: () -> Unit
+    onNavigateToRegister: () -> Unit,
+    onNavigateToComienzo: () -> Unit // ✅ NUEVO parámetro
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -114,7 +115,7 @@ fun LoginScreen(
                             .fillMaxWidth()
                             .padding(bottom = 20.dp),
                         enabled = !isLoading,
-                        shape = MaterialTheme.shapes.extraLarge, // Bordes más redondeados
+                        shape = MaterialTheme.shapes.extraLarge,
                         colors = TextFieldDefaults.colors(
                             unfocusedTextColor = Color.White,
                             focusedTextColor = Color.White,
@@ -150,7 +151,7 @@ fun LoginScreen(
                             .fillMaxWidth()
                             .padding(bottom = 20.dp),
                         enabled = !isLoading,
-                        shape = MaterialTheme.shapes.extraLarge, // Bordes más redondeados
+                        shape = MaterialTheme.shapes.extraLarge,
                         colors = TextFieldDefaults.colors(
                             unfocusedTextColor = Color.White,
                             focusedTextColor = Color.White,
@@ -175,7 +176,7 @@ fun LoginScreen(
                 )
             }
 
-            // Botón CONTINUAR
+            // Botón CONTINUAR - ACTUALIZADO
             ActionButton(
                 text = "CONTINUAR",
                 isLoading = isLoading,
@@ -184,13 +185,16 @@ fun LoginScreen(
                         loginUser(auth, email, password, context) { loading, error ->
                             isLoading = loading
                             errorMessage = error
+                            // ✅ Si no hay error y terminó de cargar, navegar a Comienzo
+                            if (!loading && error.isEmpty()) {
+                                onNavigateToComienzo()
+                            }
                         }
                     } else {
                         errorMessage = "Completar todos los campos correctamente"
                     }
                 }
             )
-
         }
     }
 }
