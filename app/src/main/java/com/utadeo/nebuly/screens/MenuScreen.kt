@@ -14,6 +14,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.utadeo.nebuly.R
 import com.utadeo.nebuly.components.BackButton
 import com.utadeo.nebuly.components.MenuCard
+import com.utadeo.nebuly.components.UserHeader
 
 @Composable
 fun MenuScreen(
@@ -40,7 +41,13 @@ fun MenuScreen(
                 .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(100.dp)) // Más espacio arriba
+            Spacer(modifier = Modifier.height(80.dp))
+
+            // ⭐ NUEVO: Header del usuario
+            UserHeader(
+                auth = auth,
+                modifier = Modifier.padding(bottom = 20.dp)
+            )
 
             // Tarjeta Aprender
             MenuCard(
@@ -76,7 +83,7 @@ fun MenuScreen(
                 onClick = { println("Click en Logros") }
             )
 
-            Spacer(modifier = Modifier.height(100.dp)) // Espacio final para scroll completo
+            Spacer(modifier = Modifier.height(100.dp))
         }
 
         // Botón de retroceso
