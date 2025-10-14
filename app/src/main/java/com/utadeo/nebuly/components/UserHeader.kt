@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.utadeo.nebuly.data.models.User
+import com.utadeo.nebuly.data.repository.UserRepository
 import com.utadeo.nebuly.data.repository.AvatarRepository
 import kotlinx.coroutines.launch
 import android.util.Log
@@ -26,10 +27,12 @@ import android.util.Log
 fun UserHeader(
     auth: FirebaseAuth,
     modifier: Modifier = Modifier,
-    showLevel: Boolean = true,
-    avatarSize: Int = 60
+    showCoins: Boolean = true, // 🆕 Cambiado de showLevel a showCoins
+    avatarSize: Int = 60,
+    onUserDataLoaded: ((User) -> Unit)? = null // 🆕 Callback opcional para obtener datos del usuario
 ) {
-    val repository = remember { AvatarRepository() }
+    val userRepository = remember { UserRepository() }
+    val avatarRepository = remember { AvatarRepository() }
     var user by remember { mutableStateOf<User?>(null) }
     var avatarUrl by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
@@ -43,13 +46,14 @@ fun UserHeader(
                     Log.d("UserHeader", "Cargando datos para usuario: $userId")
 
                     // Obtener usuario
-                    val userResult = repository.getUser(userId)
+                    val userResult = userRepository.getUser(userId)
                     userResult.onSuccess { userData ->
                         user = userData
-                        Log.d("UserHeader", "Usuario cargado: ${userData.username}, Avatar: ${userData.currentAvatarId}")
+                        onUserDataLoaded?.invoke(userData) // 🆕 Notificar datos cargados
+                        Log.d("UserHeader", "Usuario cargado: ${userData.username}, Coins: ${userData.coins}, Avatar: ${userData.currentAvatarId}")
 
                         // Obtener URL del avatar actual
-                        val avatarsResult = repository.getAllAvatars()
+                        val avatarsResult = avatarRepository.getAllAvatars()
                         avatarsResult.onSuccess { avatars ->
                             val currentAvatar = avatars.find { it.id == userData.currentAvatarId }
                             avatarUrl = currentAvatar?.imageUrl
@@ -194,17 +198,18 @@ fun UserHeader(
                         color = Color.White
                     )
 
-                    if (showLevel) {
+                    if (showCoins) {
+                        // 🆕 Mostrar monedas en lugar de nivel
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
-                                text = "⭐",
+                                text = "💰",
                                 fontSize = 14.sp
                             )
                             Text(
-                                text = "Nivel ${userData.level}",
+                                text = "${userData.coins} Nebulones",
                                 fontSize = 14.sp,
                                 color = Color(0xFFFFD700),
                                 fontWeight = FontWeight.SemiBold
@@ -217,7 +222,65 @@ fun UserHeader(
     }
 }
 
-// Variante compacta (solo avatar y nombre, sin nivel)
+// 🆕 Variante solo para mostrar monedas (útil en tienda)
+@Composable
+fun CoinDisplay(
+    auth: FirebaseAuth,
+    modifier: Modifier = Modifier,
+    onCoinsLoaded: ((Int) -> Unit)? = null
+) {
+    val userRepository = remember { UserRepository() }
+    var coins by remember { mutableStateOf(0) }
+    var isLoading by remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(auth.currentUser?.uid) {
+        scope.launch {
+            auth.currentUser?.uid?.let { userId ->
+                val result = userRepository.getUser(userId)
+                result.onSuccess { user ->
+                    coins = user.coins
+                    onCoinsLoaded?.invoke(user.coins)
+                    isLoading = false
+                }
+            }
+        }
+    }
+
+    Row(
+        modifier = modifier
+            .background(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(
+                        Color(0xFF1A1A2E).copy(alpha = 0.9f),
+                        Color(0xFF16213E).copy(alpha = 0.85f)
+                    )
+                ),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(25.dp)
+            )
+            .border(
+                width = 2.dp,
+                color = Color(0xFFFFD700),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(25.dp)
+            )
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = "💰",
+            fontSize = 20.sp
+        )
+        Text(
+            text = if (isLoading) "..." else coins.toString(),
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFFFFD700)
+        )
+    }
+}
+
+// Variante compacta (solo avatar y nombre, sin monedas)
 @Composable
 fun UserHeaderCompact(
     auth: FirebaseAuth,
@@ -226,7 +289,7 @@ fun UserHeaderCompact(
     UserHeader(
         auth = auth,
         modifier = modifier,
-        showLevel = false,
+        showCoins = false,
         avatarSize = 50
     )
 }
@@ -240,7 +303,7 @@ fun UserHeaderLarge(
     UserHeader(
         auth = auth,
         modifier = modifier,
-        showLevel = true,
+        showCoins = true,
         avatarSize = 80
     )
 }
