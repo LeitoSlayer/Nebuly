@@ -7,6 +7,7 @@ import com.utadeo.nebuly.screens.avatar.AvatarSelectionScreen
 import com.utadeo.nebuly.screens.LoginScreen
 import com.utadeo.nebuly.screens.RegisterScreen
 import com.utadeo.nebuly.screens.WelcomeScreen
+import com.utadeo.nebuly.screens.menu.MenuScreen
 
 sealed class Screen {
     object Welcome : Screen()
@@ -14,6 +15,7 @@ sealed class Screen {
     object Register : Screen()
     data class AvatarSelection(val userId: String) : Screen()
     object Comienzo : Screen()
+    object Menu : Screen()
 }
 
 @Composable
@@ -52,9 +54,11 @@ fun AppNavigation(auth: FirebaseAuth) {
 
         is Screen.Comienzo -> ComienzoScreen(
             onBackClick = { currentScreen = Screen.Login },
-            onContinueClick = {
-                println("Navegar a pantalla principal desde Comienzo")
-            }
+            onContinueClick = { currentScreen = Screen.Menu }
+        )
+        is Screen.Menu -> MenuScreen(
+            auth = auth,
+            onBackClick = { currentScreen = Screen.Comienzo }
         )
     }
 }
