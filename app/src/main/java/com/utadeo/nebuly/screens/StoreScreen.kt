@@ -102,7 +102,6 @@ fun StoreScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
                 .padding(horizontal = AppDimens.paddingHorizontal()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -129,14 +128,14 @@ fun StoreScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(AppDimens.spacingLarge()))
+            Spacer(modifier = Modifier.height(32.dp))
 
             if (isLoading) {
                 // Loading state
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(500.dp),
+                        .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(color = Color(0xFF4A90E2))
@@ -146,7 +145,7 @@ fun StoreScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(500.dp),
+                        .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -161,31 +160,41 @@ fun StoreScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(550.dp),
+                        .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
                     HorizontalPager(
                         count = avatars.size,
                         state = pagerState,
-                        modifier = Modifier.fillMaxWidth(),
-                        contentPadding = PaddingValues(horizontal = 60.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(),
+                        contentPadding = PaddingValues(horizontal = 40.dp)
                     ) { page ->
                         val avatar = avatars[page]
-                        AvatarCard(
-                            avatar = avatar,
-                            userCoins = userCoins,
-                            onClick = { onAvatarClick(avatar) }
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight()
+                                .padding(horizontal = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AvatarCard(
+                                avatar = avatar,
+                                userCoins = userCoins,
+                                onClick = { onAvatarClick(avatar) }
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(AppDimens.spacingMedium()))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // Indicador de página
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = AppDimens.spacingLarge()),
+                        .padding(bottom = 32.dp),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -203,9 +212,6 @@ fun StoreScreen(
                     }
                 }
             }
-
-
-            Spacer(modifier = Modifier.height(AppDimens.spacingLarge()))
         }
 
         // Botón de retroceso
@@ -232,12 +238,11 @@ fun AvatarCard(
 ) {
     val canAfford = userCoins >= avatar.requiredCoins
     val isLocked = avatar.isLocked
-    val avatarSize = AppDimens.avatarSizeStore()
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(0.75f)
+            .aspectRatio(0.7f)
             .clip(RoundedCornerShape(24.dp))
             .background(
                 brush = Brush.verticalGradient(
@@ -264,18 +269,20 @@ fun AvatarCard(
                 ),
                 shape = RoundedCornerShape(24.dp)
             )
-            .clickable(enabled = isLocked) { onClick() }
+            .clickable(enabled = isLocked && canAfford) { onClick() }
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+            modifier = Modifier.fillMaxSize()
         ) {
             // Contenedor del avatar
             Box(
                 modifier = Modifier
-                    .size(avatarSize)
+                    .fillMaxWidth(0.75f)
+                    .aspectRatio(1f)
                     .clip(CircleShape)
                     .background(
                         brush = Brush.radialGradient(
@@ -308,7 +315,7 @@ fun AvatarCard(
                     model = avatar.imageUrl,
                     contentDescription = stringResource(id = R.string.store_avatar_desc, avatar.id),
                     modifier = Modifier
-                        .size(avatarSize - 20.dp)
+                        .fillMaxSize(0.85f)
                         .clip(CircleShape),
                     contentScale = ContentScale.Crop
                 )
@@ -329,8 +336,6 @@ fun AvatarCard(
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
 
             // Estado del avatar
             if (isLocked) {
@@ -362,8 +367,6 @@ fun AvatarCard(
                         color = if (canAfford) Color(0xFFFFD700) else Color(0xFFDC143C)
                     )
                 }
-
-                Spacer(modifier = Modifier.height(8.dp))
 
                 // Mensaje de estado
                 Text(
@@ -401,7 +404,7 @@ fun AvatarCard(
                         )
                         Text(
                             text = stringResource(id = R.string.store_unlocked),
-                            fontSize = 18.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF4CAF50)
                         )

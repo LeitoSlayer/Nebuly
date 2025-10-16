@@ -83,7 +83,7 @@ fun ComienzoScreen(
                 Text(
                     text = "Bienvenido",
                     color = Color.White,
-                    fontSize = 60.sp,
+                    fontSize = 40.sp,
                     fontFamily = stardosStencil,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 20.dp)
