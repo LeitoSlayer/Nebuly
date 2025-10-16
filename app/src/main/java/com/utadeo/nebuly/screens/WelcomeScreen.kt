@@ -2,6 +2,8 @@ package com.utadeo.nebuly.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -16,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.utadeo.nebuly.R
 import com.utadeo.nebuly.components.StartButton
+import com.utadeo.nebuly.ui.theme.AppDimens
+import androidx.compose.foundation.layout.BoxWithConstraints
 
 @Composable
 fun WelcomeScreen(
@@ -27,11 +31,7 @@ fun WelcomeScreen(
         Font(R.font.stardos_stencil_bold, FontWeight.Bold)
     )
 
-    // Fuente Aoboshi One para los botones
-    val aoboshiOne = FontFamily(
-        Font(R.font.aoboshi_one_regular, FontWeight.Normal)
-    )
-
+    val scrollState = rememberScrollState()
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -44,41 +44,61 @@ fun WelcomeScreen(
             contentScale = ContentScale.Crop
         )
 
-        // Capa semitransparente para mejorar la legibilidad
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-
-        )
-
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(14.dp),
+                .verticalScroll(scrollState)
+                .padding(horizontal = AppDimens.paddingHorizontal()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            // Espacio en la parte superior
-            Spacer(modifier = Modifier.height(150.dp))
+            // Espacio en la parte superior (adaptativo)
+            Spacer(modifier = Modifier.height(AppDimens.spacingExtraLarge() + 50.dp))
 
-            // Título NEBULY
-            Text(
-                text = "NEBULY",
-                fontSize = 90.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = stardosStencil,
-                color = Color.White,
-                modifier = Modifier.padding(bottom = 40.dp)
-            )
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = AppDimens.spacingLarge()),
+                contentAlignment = Alignment.Center
+            ) {
+                // Aquí usamos el prefijo "this@BoxWithConstraints"
+                val fontSize = when {
+                    this@BoxWithConstraints.maxWidth < 300.dp -> 60.sp
+                    this@BoxWithConstraints.maxWidth < 400.dp -> 75.sp
+                    else -> 60.sp
+                }
 
-            Spacer(modifier = Modifier.height(160.dp))
+                Text(
+                    text = "NEBULY",
+                    fontSize = fontSize,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = stardosStencil,
+                    color = Color.White,
+                    maxLines = 1,
+                    softWrap = false
+                )
+            }
+
+
+            // Espaciado adaptativo entre título y botones
+            Spacer(modifier = Modifier.height(AppDimens.spacingExtraLarge() + 80.dp))
 
             // Botón de Iniciar Sesión
-            StartButton(text = "INICIAR SESIÓN", onClick = onLoginClick)
+            StartButton(
+                text = "INICIAR SESIÓN",
+                onClick = onLoginClick,
+                modifier = Modifier.height(AppDimens.buttonHeight())
+            )
 
             // Botón de Registrarse
-            StartButton(text = "REGISTRARSE", onClick = onRegisterClick)
+            StartButton(
+                text = "REGISTRARSE",
+                onClick = onRegisterClick,
+                modifier = Modifier.height(AppDimens.buttonHeight())
+            )
+
+            // Espacio extra al final
+            Spacer(modifier = Modifier.height(AppDimens.spacingLarge()))
         }
     }
 }

@@ -5,8 +5,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -32,6 +34,7 @@ import com.utadeo.nebuly.components.CoinDisplay
 import com.utadeo.nebuly.data.models.Avatar
 import com.utadeo.nebuly.data.repository.AvatarRepository
 import com.utadeo.nebuly.data.repository.UserRepository
+import com.utadeo.nebuly.ui.theme.AppDimens
 import kotlinx.coroutines.launch
 import android.util.Log
 
@@ -51,6 +54,7 @@ fun StoreScreen(
     var isLoading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
     val pagerState = rememberPagerState()
+    val scrollState = rememberScrollState()
 
     // Cargar avatares y datos del usuario
     LaunchedEffect(auth.currentUser?.uid) {
@@ -59,7 +63,6 @@ fun StoreScreen(
                 try {
                     Log.d("StoreScreen", "Cargando datos para usuario: $userId")
 
-                    // Cargar usuario
                     val userResult = userRepository.getUser(userId)
                     userResult.onSuccess { user ->
                         userCoins = user.coins
@@ -67,10 +70,8 @@ fun StoreScreen(
                         Log.d("StoreScreen", "Usuario cargado - Coins: ${user.coins}")
                     }
 
-                    // Cargar todos los avatares
                     val avatarsResult = avatarRepository.getAllAvatars()
                     avatarsResult.onSuccess { loadedAvatars ->
-                        // Marcar como desbloqueados los que el usuario ya tiene
                         avatars = loadedAvatars.map { avatar ->
                             avatar.copy(isLocked = !unlockedAvatars.contains(avatar.id))
                         }
@@ -100,10 +101,11 @@ fun StoreScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp),
+                .verticalScroll(scrollState)
+                .padding(horizontal = AppDimens.paddingHorizontal()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(80.dp))
+            Spacer(modifier = Modifier.height(AppDimens.topSpacing()))
 
             // Header: Título y monedas
             Row(
@@ -126,14 +128,14 @@ fun StoreScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(AppDimens.spacingLarge()))
 
             if (isLoading) {
                 // Loading state
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
+                        .height(500.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(color = Color(0xFF4A90E2))
@@ -143,7 +145,7 @@ fun StoreScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
+                        .height(500.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -158,7 +160,7 @@ fun StoreScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
+                        .height(550.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     HorizontalPager(
@@ -176,13 +178,13 @@ fun StoreScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(AppDimens.spacingMedium()))
 
                 // Indicador de página
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 40.dp),
+                        .padding(bottom = AppDimens.spacingLarge()),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -200,16 +202,22 @@ fun StoreScreen(
                     }
                 }
             }
+
+            // Espacio extra al final
+            Spacer(modifier = Modifier.height(AppDimens.spacingLarge()))
         }
 
         // Botón de retroceso
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 20.dp, start = 20.dp),
+                .padding(top = AppDimens.paddingVertical(), start = AppDimens.paddingVertical()),
             contentAlignment = Alignment.TopStart
         ) {
-            BackButton(onClick = onBackClick)
+            BackButton(
+                onClick = onBackClick,
+                modifier = Modifier.size(AppDimens.backButtonSize())
+            )
         }
     }
 }
@@ -223,6 +231,7 @@ fun AvatarCard(
 ) {
     val canAfford = userCoins >= avatar.requiredCoins
     val isLocked = avatar.isLocked
+    val avatarSize = AppDimens.avatarSizeStore()
 
     Box(
         modifier = modifier
@@ -265,7 +274,7 @@ fun AvatarCard(
             // Contenedor del avatar
             Box(
                 modifier = Modifier
-                    .size(200.dp)
+                    .size(avatarSize)
                     .clip(CircleShape)
                     .background(
                         brush = Brush.radialGradient(
@@ -298,7 +307,7 @@ fun AvatarCard(
                     model = avatar.imageUrl,
                     contentDescription = "Avatar ${avatar.id}",
                     modifier = Modifier
-                        .size(180.dp)
+                        .size(avatarSize - 20.dp)
                         .clip(CircleShape),
                     contentScale = ContentScale.Crop
                 )
