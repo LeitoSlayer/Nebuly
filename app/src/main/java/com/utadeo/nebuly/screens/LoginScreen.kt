@@ -29,7 +29,7 @@ import com.utadeo.nebuly.components.BackButton
 import com.utadeo.nebuly.ui.theme.AppDimens
 import com.utadeo.nebuly.utils.loginUser
 import com.utadeo.nebuly.utils.validateLoginInputs
-
+import androidx.compose.ui.res.stringResource
 @Composable
 fun LoginScreen(
     auth: FirebaseAuth,
@@ -105,21 +105,21 @@ fun LoginScreen(
                 Column(
                     modifier = Modifier.padding(AppDimens.spacingMedium())
                 ) {
-                    // ✅ Campo de Email con teclado de email
+                    //Campo de Email con teclado de email
                     OutlinedTextField(
                         value = email,
                         onValueChange = {
                             email = it
                             errorMessage = ""
                         },
-                        label = { Text("Correo electrónico", color = Color.White) },
+                        label = { Text(stringResource(R.string.campo_correo), color = Color.White) },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Email,
-                            imeAction = ImeAction.Next // ✅ Botón "Siguiente"
+                            imeAction = ImeAction.Next
                         ),
                         keyboardActions = KeyboardActions(
                             onNext = {
-                                passwordFocusRequester.requestFocus() // ✅ Ir al siguiente campo
+                                passwordFocusRequester.requestFocus()
                             }
                         ),
                         singleLine = true,
@@ -141,22 +141,22 @@ fun LoginScreen(
                         )
                     )
 
-                    // ✅ Campo de Contraseña
+                    //Campo de Contraseña
                     OutlinedTextField(
                         value = password,
                         onValueChange = {
                             password = it
                             errorMessage = ""
                         },
-                        label = { Text("Contraseña", color = Color.White) },
+                        label = { Text(stringResource(R.string.campo_contraseña), color = Color.White) },
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password,
-                            imeAction = ImeAction.Done // ✅ Botón "Listo"
+                            imeAction = ImeAction.Done //
                         ),
                         keyboardActions = KeyboardActions(
                             onDone = {
-                                focusManager.clearFocus() // ✅ Cerrar teclado
+                                focusManager.clearFocus() //
                                 // Ejecutar login automáticamente
                                 if (validateLoginInputs(email, password)) {
                                     loginUser(auth, email, password, context) { loading, error ->
@@ -174,7 +174,7 @@ fun LoginScreen(
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .focusRequester(passwordFocusRequester) // ✅ Para recibir foco
+                            .focusRequester(passwordFocusRequester)
                             .padding(bottom = AppDimens.spacingSmall()),
                         enabled = !isLoading,
                         shape = MaterialTheme.shapes.extraLarge,
@@ -204,7 +204,7 @@ fun LoginScreen(
 
             // Botón de Iniciar Sesión
             ActionButton(
-                text = "INICIAR SESIÓN",
+                text = stringResource(R.string.iniciar_sesion),
                 isLoading = isLoading,
                 onClick = {
                     if (validateLoginInputs(email, password)) {
@@ -227,7 +227,7 @@ fun LoginScreen(
             // Link para registrarse
             TextButton(onClick = onNavigateToRegister) {
                 Text(
-                    text = "¿No tienes cuenta? Regístrate",
+                    text = stringResource(R.string.sin_cuenta),
                     color = Color.White,
                     fontSize = 16.sp
                 )

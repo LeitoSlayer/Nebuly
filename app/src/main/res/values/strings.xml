@@ -1,6 +1,20 @@
 <resources>
-    <string name="app_name">Nebuly</string>
+    <string name="app_name">NEBULY</string>
     <string name="logo_desc">Logo de Nebuly</string>
     <string name="tap_to_continue">Toca la pantalla para continuar</string>
+    <string name="iniciar_sesion">INICIAR SESIÓN</string>
+    <string name="campo_correo">Correo electrónico</string>
+    <string name="campo_contraseña">Contraseña</string>
+    <string name="campo_nombre">Nombre de usuario</string>
+    <string name="registro">REGISTRARSE</string>
+    <string name="sin_cuenta">¿No tienes cuenta? Regístrate</string>
+    <string name="store_title">Avatares</string>
+    <string name="store_no_avatars">No hay avatares disponibles</string>
+    <string name="store_tap_to_buy">Toca para comprar</string>
+    <string name="store_insufficient_coins">Monedas insuficientes</string>
+    <string name="store_unlocked">Desbloqueado</string>
+    <string name="store_avatar_desc">Avatar %1$s</string>
+    <string name="store_lock_icon">🔒</string>
+    <string name="store_coin_icon">💰</string>
+    <string name="store_check_icon">✓</string>
 </resources>
-

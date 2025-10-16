@@ -20,7 +20,7 @@ import com.utadeo.nebuly.R
 import com.utadeo.nebuly.components.StartButton
 import com.utadeo.nebuly.ui.theme.AppDimens
 import androidx.compose.foundation.layout.BoxWithConstraints
-
+import androidx.compose.ui.res.stringResource
 @Composable
 fun WelcomeScreen(
     onLoginClick: () -> Unit,
@@ -69,7 +69,7 @@ fun WelcomeScreen(
                 }
 
                 Text(
-                    text = "NEBULY",
+                    text = stringResource(R.string.app_name),
                     fontSize = fontSize,
                     fontWeight = FontWeight.Bold,
                     fontFamily = stardosStencil,
@@ -85,14 +85,14 @@ fun WelcomeScreen(
 
             // Botón de Iniciar Sesión
             StartButton(
-                text = "INICIAR SESIÓN",
+                text = stringResource(R.string.iniciar_sesion),
                 onClick = onLoginClick,
                 modifier = Modifier.height(AppDimens.buttonHeight())
             )
 
             // Botón de Registrarse
             StartButton(
-                text = "REGISTRARSE",
+                text = stringResource(R.string.registro),
                 onClick = onRegisterClick,
                 modifier = Modifier.height(AppDimens.buttonHeight())
             )
