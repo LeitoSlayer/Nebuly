@@ -27,9 +27,9 @@ import android.util.Log
 fun UserHeader(
     auth: FirebaseAuth,
     modifier: Modifier = Modifier,
-    showCoins: Boolean = true, // 🆕 Cambiado de showLevel a showCoins
+    showCoins: Boolean = true,
     avatarSize: Int = 60,
-    onUserDataLoaded: ((User) -> Unit)? = null // 🆕 Callback opcional para obtener datos del usuario
+    onUserDataLoaded: ((User) -> Unit)? = null
 ) {
     val userRepository = remember { UserRepository() }
     val avatarRepository = remember { AvatarRepository() }
@@ -49,7 +49,7 @@ fun UserHeader(
                     val userResult = userRepository.getUser(userId)
                     userResult.onSuccess { userData ->
                         user = userData
-                        onUserDataLoaded?.invoke(userData) // 🆕 Notificar datos cargados
+                        onUserDataLoaded?.invoke(userData)
                         Log.d("UserHeader", "Usuario cargado: ${userData.username}, Coins: ${userData.coins}, Avatar: ${userData.currentAvatarId}")
 
                         // Obtener URL del avatar actual
@@ -222,7 +222,7 @@ fun UserHeader(
     }
 }
 
-// 🆕 Variante solo para mostrar monedas (útil en tienda)
+// 🆕 Variante solo para mostrar monedas
 @Composable
 fun CoinDisplay(
     auth: FirebaseAuth,

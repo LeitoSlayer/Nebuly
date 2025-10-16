@@ -34,6 +34,7 @@ import com.utadeo.nebuly.components.BackButton
 import com.utadeo.nebuly.ui.theme.AppDimens
 import com.utadeo.nebuly.utils.registerUser
 import com.utadeo.nebuly.utils.validateRegisterInputs
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun RegisterScreen(
@@ -152,14 +153,14 @@ fun RegisterScreen(
                 Column(
                     modifier = Modifier.padding(AppDimens.spacingMedium())
                 ) {
-                    // ✅ Campo de Nombre de Usuario
+                    // Campo de Nombre de Usuario
                     OutlinedTextField(
                         value = username,
                         onValueChange = {
                             username = it
                             errorMessage = ""
                         },
-                        label = { Text("Nombre de usuario", color = Color.White) },
+                        label = { Text(stringResource(R.string.campo_nombre), color = Color.White) },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Text,
                             imeAction = ImeAction.Next
@@ -186,14 +187,14 @@ fun RegisterScreen(
                         )
                     )
 
-                    // ✅ Campo de Email con teclado de email
+                    // Campo de Email con teclado de email
                     OutlinedTextField(
                         value = email,
                         onValueChange = {
                             email = it
                             errorMessage = ""
                         },
-                        label = { Text("Correo electrónico", color = Color.White) },
+                        label = { Text(stringResource(R.string.campo_correo), color = Color.White) },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Email,
                             imeAction = ImeAction.Next
@@ -228,7 +229,7 @@ fun RegisterScreen(
                             password = it
                             errorMessage = ""
                         },
-                        label = { Text("Contraseña", color = Color.White) },
+                        label = { Text(stringResource(R.string.campo_contraseña), color = Color.White) },
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password,
@@ -284,7 +285,7 @@ fun RegisterScreen(
 
             // Botón de Registro
             ActionButton(
-                text = "REGISTRARSE",
+                text = stringResource(R.string.registro),
                 isLoading = isLoading,
                 onClick = {
                     if (validateRegisterInputs(email, password, username)) {

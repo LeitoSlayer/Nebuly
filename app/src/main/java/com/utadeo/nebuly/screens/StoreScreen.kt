@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -114,7 +115,7 @@ fun StoreScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Avatares",
+                    text = stringResource(id = R.string.store_title),
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -149,7 +150,7 @@ fun StoreScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No hay avatares disponibles",
+                        text = stringResource(id = R.string.store_no_avatars),
                         fontSize = 18.sp,
                         color = Color.White.copy(alpha = 0.7f),
                         textAlign = TextAlign.Center
@@ -203,7 +204,7 @@ fun StoreScreen(
                 }
             }
 
-            // Espacio extra al final
+
             Spacer(modifier = Modifier.height(AppDimens.spacingLarge()))
         }
 
@@ -305,7 +306,7 @@ fun AvatarCard(
             ) {
                 AsyncImage(
                     model = avatar.imageUrl,
-                    contentDescription = "Avatar ${avatar.id}",
+                    contentDescription = stringResource(id = R.string.store_avatar_desc, avatar.id),
                     modifier = Modifier
                         .size(avatarSize - 20.dp)
                         .clip(CircleShape),
@@ -322,7 +323,7 @@ fun AvatarCard(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "🔒",
+                            text = stringResource(id = R.string.store_lock_icon),
                             fontSize = 48.sp
                         )
                     }
@@ -351,7 +352,7 @@ fun AvatarCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = "💰",
+                        text = stringResource(id = R.string.store_coin_icon),
                         fontSize = 24.sp
                     )
                     Text(
@@ -366,7 +367,10 @@ fun AvatarCard(
 
                 // Mensaje de estado
                 Text(
-                    text = if (canAfford) "Toca para comprar" else "Monedas insuficientes",
+                    text = if (canAfford)
+                        stringResource(id = R.string.store_tap_to_buy)
+                    else
+                        stringResource(id = R.string.store_insufficient_coins),
                     fontSize = 14.sp,
                     color = Color.White.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center
@@ -391,12 +395,12 @@ fun AvatarCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "✓",
+                            text = stringResource(id = R.string.store_check_icon),
                             fontSize = 20.sp,
                             color = Color(0xFF4CAF50)
                         )
                         Text(
-                            text = "Desbloqueado",
+                            text = stringResource(id = R.string.store_unlocked),
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF4CAF50)
