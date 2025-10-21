@@ -8,6 +8,8 @@
     <string name="campo_nombre">Nombre de usuario</string>
     <string name="registro">REGISTRARSE</string>
     <string name="sin_cuenta">¿No tienes cuenta? Regístrate</string>
+
+    <!-- Store strings -->
     <string name="store_title">Avatares</string>
     <string name="store_no_avatars">No hay avatares disponibles</string>
     <string name="store_tap_to_buy">Toca para comprar</string>
@@ -17,4 +19,16 @@
     <string name="store_lock_icon">🔒</string>
     <string name="store_coin_icon">💰</string>
     <string name="store_check_icon">✓</string>
+
+    <!-- Learning strings -->
+    <string name="learning_route_title">Ruta de aprendizaje</string>
+    <string name="learning_loading">Cargando…</string>
+    <string name="learning_error">Error al cargar información</string>
+    <string name="learning_module_locked">Módulo bloqueado</string>
+    <string name="learning_level_locked">Nivel bloqueado</string>
+    <string name="learning_level_title">Nivel %1$d</string>
+    <string name="learning_complete_quiz">Completa el cuestionario para desbloquear el siguiente nivel</string>
+    <string name="learning_quiz_button">❓</string>
+    <string name="learning_no_modules">No hay módulos disponibles</string>
+    <string name="learning_no_levels">No hay niveles disponibles</string>
 </resources>
