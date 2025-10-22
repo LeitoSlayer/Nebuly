@@ -1,7 +1,7 @@
 package com.utadeo.nebuly.data.models
 
 /**
- * Representa un módulo de aprendizaje (ej: Sistema Solar, Galaxia, Universo)
+ * Modelo para un módulo de aprendizaje (ej: Sistema Solar, Galaxias, Universo)
  */
 data class LearningModule(
     val id: String = "",
@@ -10,12 +10,10 @@ data class LearningModule(
     val imageUrl: String = "",
     val order: Int = 0,
     val isLocked: Boolean = true
-) {
-    constructor() : this("", "", "", "", 0, true)
-}
+)
 
 /**
- * Representa un nivel dentro de un módulo (ej: Mercurio, Venus, Tierra)
+ * Modelo para un nivel dentro de un módulo (ej: Mercurio, Venus, Tierra...)
  */
 data class Level(
     val id: String = "",
@@ -25,12 +23,10 @@ data class Level(
     val planetImageUrl: String = "",
     val coinsReward: Int = 0,
     val isLocked: Boolean = true
-) {
-    constructor() : this("", "", 0, "", "", 0, true)
-}
+)
 
 /**
- * Representa la información detallada de un planeta/nivel
+ * Modelo para la información detallada de un nivel/planeta
  */
 data class PlanetLevel(
     val id: String = "",
@@ -40,6 +36,4 @@ data class PlanetLevel(
     val planetImageUrl: String = "",
     val description: String = "",
     val coinsReward: Int = 0
-) {
-    constructor() : this("", "", 0, "", "", "", 0)
-}
+)

@@ -11,6 +11,39 @@ class UserRepository {
     private val usersCollection = firestore.collection("users")
 
     /**
+     * 🆕 Crea un nuevo usuario en Firebase con valores por defecto
+     */
+    suspend fun createUser(userId: String, username: String, email: String): Result<User> {
+        return try {
+            Log.d("UserRepository", "Creando usuario en Firebase: $userId")
+
+            // Crear el usuario con valores por defecto según tu modelo
+            val newUser = User(
+                userId = userId,
+                username = username,
+                email = email,
+                level = 1,
+                coins = 1000,
+                currentAvatarId = "avatar_default",
+                unlockedAvatars = listOf("avatar_default"),
+                unlockedModules = listOf("module_solar_system"),  // Primer módulo desbloqueado
+                unlockedLevels = listOf("level_mercury")  // Primer nivel desbloqueado
+            )
+
+            // Guardar en Firebase
+            usersCollection.document(userId)
+                .set(newUser)
+                .await()
+
+            Log.d("UserRepository", "✅ Usuario creado exitosamente con módulos y niveles iniciales")
+            Result.success(newUser)
+        } catch (e: Exception) {
+            Log.e("UserRepository", "❌ Error al crear usuario en Firebase", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Obtiene los datos del usuario
      */
     suspend fun getUser(userId: String): Result<User> {
@@ -46,7 +79,6 @@ class UserRepository {
         return try {
             Log.d("UserRepository", "Iniciando compra - User: $userId, Avatar: $avatarId, Costo: $cost")
 
-            // Primero verificamos que el usuario tenga suficientes monedas
             val userResult = getUser(userId)
             if (userResult.isFailure) {
                 return Result.failure(userResult.exceptionOrNull() ?: Exception("Error al obtener usuario"))
@@ -54,26 +86,20 @@ class UserRepository {
 
             val user = userResult.getOrNull()!!
 
-            // Verificar si ya tiene el avatar
             if (user.unlockedAvatars.contains(avatarId)) {
                 Log.w("UserRepository", "Avatar ya desbloqueado")
                 return Result.failure(Exception("Ya tienes este avatar"))
             }
 
-            // Verificar si tiene suficientes monedas
             if (user.coins < cost) {
                 Log.w("UserRepository", "Monedas insuficientes - Tiene: ${user.coins}, Necesita: $cost")
                 return Result.failure(Exception("Monedas insuficientes"))
             }
 
-            // Realizar la transacción
             val userRef = usersCollection.document(userId)
 
             firestore.runTransaction { transaction ->
-                // Deducir monedas
                 transaction.update(userRef, "coins", user.coins - cost)
-
-                // Agregar avatar a la lista de desbloqueados
                 transaction.update(userRef, "unlockedAvatars", FieldValue.arrayUnion(avatarId))
             }.await()
 
