@@ -15,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -35,14 +36,16 @@ import kotlinx.coroutines.launch
 fun PlanetDetailScreen(
     auth: FirebaseAuth,
     levelId: String,
+    moduleId: String,  // 🆕 Recibimos el módulo
+    moduleName: String,  // 🆕 Recibimos el nombre del módulo
     onBackClick: () -> Unit,
+    onStartQuiz: () -> Unit,  // 🆕 Navegar al cuestionario
     modifier: Modifier = Modifier
 ) {
     val repository = remember { LearningRepository() }
     var planetLevel by remember { mutableStateOf<PlanetLevel?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var isCompleting by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
     // Cargar información del planeta
@@ -167,77 +170,79 @@ fun PlanetDetailScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Recompensa
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
+                    // Recompensa TOTAL (250 nebulones por las 5 preguntas)
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color(0xFF4CAF50).copy(alpha = 0.8f),
+                                        Color(0xFF8BC34A).copy(alpha = 0.8f)
+                                    )
+                                )
+                            )
+                            .padding(horizontal = 24.dp, vertical = 16.dp)
                     ) {
-                        Text(
-                            text = "🪙 Recompensa:",
-                            fontSize = 18.sp,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "${planet.coinsReward} monedas",
-                            fontSize = 18.sp,
-                            color = Color(0xFFFFD700),
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "🏆 Recompensa total:",
+                                fontSize = 18.sp,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "250 Nebulones 🪙",
+                                fontSize = 20.sp,
+                                color = Color(0xFFFFD700),
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
                     }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Info adicional
+                    Text(
+                        text = "5 preguntas × 50 nebulones c/u",
+                        fontSize = 14.sp,
+                        color = Color.White.copy(alpha = 0.7f),
+                        textAlign = TextAlign.Center
+                    )
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // Botón para completar nivel
+                    // Botón para iniciar cuestionario (CAMBIADO)
                     Button(
-                        onClick = {
-                            if (!isCompleting) {
-                                isCompleting = true
-                                scope.launch {
-                                    auth.currentUser?.uid?.let { userId ->
-                                        repository.completeLevel(
-                                            userId = userId,
-                                            levelId = levelId,
-                                            coinsReward = planet.coinsReward
-                                        ).fold(
-                                            onSuccess = {
-                                                // Aquí podrías mostrar un diálogo de éxito
-                                                // y luego navegar de vuelta
-                                                onBackClick()
-                                            },
-                                            onFailure = {
-                                                errorMessage = it.message
-                                                isCompleting = false
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        },
-                        enabled = !isCompleting,
+                        onClick = { onStartQuiz() },  // 🆕 Navegar al quiz
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF4CAF50),
-                            disabledContainerColor = Color.Gray
+                            containerColor = Color.Transparent
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 32.dp)
-                            .height(56.dp),
+                            .height(56.dp)
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color(0xFF4A90E2),
+                                        Color(0xFF7B68EE)
+                                    )
+                                ),
+                                shape = RoundedCornerShape(28.dp)
+                            ),
                         shape = RoundedCornerShape(28.dp)
                     ) {
-                        if (isCompleting) {
-                            CircularProgressIndicator(
-                                color = Color.White,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        } else {
-                            Text(
-                                text = "✅ Completar Nivel",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                        Text(
+                            text = "🚀 Iniciar Cuestionario",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
                     }
                 }
             }

@@ -25,9 +25,11 @@ import com.google.firebase.auth.FirebaseAuth
 import com.utadeo.nebuly.R
 import com.utadeo.nebuly.components.BackButton
 import com.utadeo.nebuly.components.TitleHeader
+import com.utadeo.nebuly.components.UserHeader
 import com.utadeo.nebuly.data.models.LearningModule
 import com.utadeo.nebuly.data.repository.LearningRepository
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.Composable
 
 @Composable
 fun RutaAprendizajeScreen(
@@ -75,6 +77,13 @@ fun RutaAprendizajeScreen(
                 .padding(top = 80.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            UserHeader(
+                auth = auth,
+                modifier = Modifier
+                    .padding(horizontal = 24.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
             // Título
             TitleHeader(text = "Ruta de aprendizaje")
 
@@ -196,7 +205,8 @@ private fun ModuleCard(
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center
-            ) {
+            )
+            {
                 Text(
                     text = module.name,
                     fontSize = 18.sp,
