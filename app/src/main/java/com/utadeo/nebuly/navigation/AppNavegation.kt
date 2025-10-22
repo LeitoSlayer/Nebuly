@@ -16,6 +16,7 @@ import com.utadeo.nebuly.screens.store.AvatarDetailScreen
 import com.utadeo.nebuly.screens.learning.RutaAprendizajeScreen
 import com.utadeo.nebuly.screens.learning.NivelesScreen
 import com.utadeo.nebuly.screens.learning.PlanetDetailScreen
+import com.utadeo.nebuly.screens.learning.QuestionScreen
 
 sealed class Screen {
     object Welcome : Screen()
@@ -32,8 +33,15 @@ sealed class Screen {
     data class Niveles(val moduleId: String, val moduleName: String) : Screen()
     data class PlanetDetail(
         val levelId: String,
-        val moduleId: String,  // 🆕 Mantener contexto
-        val moduleName: String  // 🆕 Mantener contexto
+        val moduleId: String,
+        val moduleName: String
+    ) : Screen()
+
+    // 🆕 Pantalla de cuestionario
+    data class Question(
+        val levelId: String,
+        val moduleId: String,
+        val moduleName: String
     ) : Screen()
 }
 
@@ -124,7 +132,6 @@ fun AppNavigation(auth: FirebaseAuth) {
                 moduleName = screen.moduleName,
                 onBackClick = { currentScreen = Screen.RutaAprendizaje },
                 onLevelClick = { level ->
-                    // 🆕 Pasar el contexto del módulo
                     currentScreen = Screen.PlanetDetail(
                         levelId = level.id,
                         moduleId = screen.moduleId,
@@ -140,8 +147,39 @@ fun AppNavigation(auth: FirebaseAuth) {
             PlanetDetailScreen(
                 auth = auth,
                 levelId = screen.levelId,
+                moduleId = screen.moduleId,
+                moduleName = screen.moduleName,
                 onBackClick = {
-                    // 🆕 Volver correctamente a la pantalla de niveles
+                    currentScreen = Screen.Niveles(screen.moduleId, screen.moduleName)
+                },
+                onStartQuiz = {  // 🆕 Navegar al cuestionario
+                    currentScreen = Screen.Question(
+                        levelId = screen.levelId,
+                        moduleId = screen.moduleId,
+                        moduleName = screen.moduleName
+                    )
+                }
+            )
+        }
+
+        // 🆕 Pantalla de Cuestionario
+        is Screen.Question -> {
+            val screen = currentScreen as Screen.Question
+            QuestionScreen(
+                auth = auth,
+                levelId = screen.levelId,
+                moduleId = screen.moduleId,
+                moduleName = screen.moduleName,
+                onBackClick = {
+                    // Volver al detalle del planeta
+                    currentScreen = Screen.PlanetDetail(
+                        levelId = screen.levelId,
+                        moduleId = screen.moduleId,
+                        moduleName = screen.moduleName
+                    )
+                },
+                onQuizComplete = {
+                    // Al completar, volver a la lista de niveles
                     currentScreen = Screen.Niveles(screen.moduleId, screen.moduleName)
                 }
             )
