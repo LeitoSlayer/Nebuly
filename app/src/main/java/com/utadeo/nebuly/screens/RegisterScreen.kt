@@ -1,5 +1,6 @@
 package com.utadeo.nebuly.screens
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -19,9 +20,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -31,10 +32,10 @@ import com.google.firebase.auth.FirebaseAuth
 import com.utadeo.nebuly.R
 import com.utadeo.nebuly.components.ActionButton
 import com.utadeo.nebuly.components.BackButton
+import com.utadeo.nebuly.data.repository.UserRepository
 import com.utadeo.nebuly.ui.theme.AppDimens
-import com.utadeo.nebuly.utils.registerUser
-import com.utadeo.nebuly.utils.validateRegisterInputs
-import androidx.compose.ui.res.stringResource
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @Composable
 fun RegisterScreen(
@@ -52,13 +53,90 @@ fun RegisterScreen(
     var currentAvatarUrl by remember { mutableStateOf<String?>(null) }
     var currentUserId by remember { mutableStateOf<String?>(null) }
 
-    val context = LocalContext.current
     val scrollState = rememberScrollState()
     val focusManager = LocalFocusManager.current
+    val scope = rememberCoroutineScope()
+    val userRepository = remember { UserRepository() }
 
     // FocusRequesters para navegación entre campos
     val emailFocusRequester = remember { FocusRequester() }
     val passwordFocusRequester = remember { FocusRequester() }
+
+    // 🆕 Función para registrar usuario (reemplaza registerUser())
+    fun performRegistration() {
+        // Validaciones básicas
+        if (username.isBlank() || email.isBlank() || password.isBlank()) {
+            errorMessage = "Todos los campos son obligatorios"
+            return
+        }
+
+        if (password.length < 6) {
+            errorMessage = "La contraseña debe tener al menos 6 caracteres"
+            return
+        }
+
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            errorMessage = "Correo electrónico inválido"
+            return
+        }
+
+        isLoading = true
+        errorMessage = ""
+
+        scope.launch {
+            try {
+                Log.d("RegisterScreen", "🔹 Iniciando registro para: $email")
+
+                // 1️⃣ Crear usuario en Firebase Auth
+                val authResult = auth.createUserWithEmailAndPassword(email, password).await()
+                val userId = authResult.user?.uid
+
+                if (userId == null) {
+                    errorMessage = "Error al crear usuario"
+                    isLoading = false
+                    return@launch
+                }
+
+                Log.d("RegisterScreen", "✅ Usuario creado en Auth: $userId")
+
+                // 2️⃣ Crear documento en Firestore
+                userRepository.createUser(
+                    userId = userId,
+                    username = username,
+                    email = email
+                ).fold(
+                    onSuccess = { user ->
+                        Log.d("RegisterScreen", "✅ Usuario guardado en Firestore")
+                        Log.d("RegisterScreen", "Módulos desbloqueados: ${user.unlockedModules}")
+                        Log.d("RegisterScreen", "Niveles desbloqueados: ${user.unlockedLevels}")
+
+                        isLoading = false
+                        currentUserId = userId
+
+                        // 3️⃣ Navegar a selección de avatar
+                        onNavigateToAvatarSelection(userId)
+                    },
+                    onFailure = { e ->
+                        Log.e("RegisterScreen", "❌ Error al guardar en Firestore", e)
+                        errorMessage = "Error al crear perfil: ${e.message}"
+                        isLoading = false
+                    }
+                )
+
+            } catch (e: Exception) {
+                Log.e("RegisterScreen", "❌ Error en registro", e)
+                errorMessage = when {
+                    e.message?.contains("already in use") == true ->
+                        "Este correo ya está registrado"
+                    e.message?.contains("network") == true ->
+                        "Error de conexión"
+                    else ->
+                        "Error: ${e.message}"
+                }
+                isLoading = false
+            }
+        }
+    }
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -187,7 +265,7 @@ fun RegisterScreen(
                         )
                     )
 
-                    // Campo de Email con teclado de email
+                    // Campo de Email
                     OutlinedTextField(
                         value = email,
                         onValueChange = {
@@ -222,7 +300,7 @@ fun RegisterScreen(
                         )
                     )
 
-                    // ✅ Campo de Contraseña
+                    // Campo de Contraseña
                     OutlinedTextField(
                         value = password,
                         onValueChange = {
@@ -238,18 +316,7 @@ fun RegisterScreen(
                         keyboardActions = KeyboardActions(
                             onDone = {
                                 focusManager.clearFocus()
-                                // Ejecutar registro automáticamente
-                                if (validateRegisterInputs(email, password, username)) {
-                                    registerUser(auth, email, password, username, context) { loading, error, userId ->
-                                        isLoading = loading
-                                        errorMessage = error
-                                        if (userId != null && error.isEmpty()) {
-                                            currentUserId = userId
-                                        }
-                                    }
-                                } else {
-                                    errorMessage = "Completar todos los campos correctamente"
-                                }
+                                performRegistration() // 🆕 Ejecutar al presionar Done
                             }
                         ),
                         singleLine = true,
@@ -287,19 +354,7 @@ fun RegisterScreen(
             ActionButton(
                 text = stringResource(R.string.registro),
                 isLoading = isLoading,
-                onClick = {
-                    if (validateRegisterInputs(email, password, username)) {
-                        registerUser(auth, email, password, username, context) { loading, error, userId ->
-                            isLoading = loading
-                            errorMessage = error
-                            if (userId != null && error.isEmpty()) {
-                                currentUserId = userId
-                            }
-                        }
-                    } else {
-                        errorMessage = "Completar todos los campos correctamente"
-                    }
-                },
+                onClick = { performRegistration() }, // 🆕 Usar nueva función
                 modifier = Modifier.height(AppDimens.buttonHeight())
             )
 

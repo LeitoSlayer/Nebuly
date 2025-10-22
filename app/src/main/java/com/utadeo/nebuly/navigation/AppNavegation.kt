@@ -27,10 +27,14 @@ sealed class Screen {
     object Store : Screen()
     data class AvatarDetail(val avatar: Avatar, val userCoins: Int) : Screen()
 
-    // 🆕 Pantallas de aprendizaje
+    // Pantallas de aprendizaje
     object RutaAprendizaje : Screen()
     data class Niveles(val moduleId: String, val moduleName: String) : Screen()
-    data class PlanetDetail(val levelId: String) : Screen()
+    data class PlanetDetail(
+        val levelId: String,
+        val moduleId: String,  // 🆕 Mantener contexto
+        val moduleName: String  // 🆕 Mantener contexto
+    ) : Screen()
 }
 
 @Composable
@@ -76,7 +80,7 @@ fun AppNavigation(auth: FirebaseAuth) {
             auth = auth,
             onBackClick = { currentScreen = Screen.Comienzo },
             onStoreClick = { currentScreen = Screen.Store },
-            onLearningClick = { currentScreen = Screen.RutaAprendizaje } // 🆕
+            onLearningClick = { currentScreen = Screen.RutaAprendizaje }
         )
 
         is Screen.Store -> StoreScreen(
@@ -102,7 +106,7 @@ fun AppNavigation(auth: FirebaseAuth) {
             )
         }
 
-        // 🆕 Pantalla de Ruta de Aprendizaje
+        // Pantalla de Ruta de Aprendizaje
         is Screen.RutaAprendizaje -> RutaAprendizajeScreen(
             auth = auth,
             onBackClick = { currentScreen = Screen.Menu },
@@ -111,7 +115,7 @@ fun AppNavigation(auth: FirebaseAuth) {
             }
         )
 
-        // 🆕 Pantalla de Niveles
+        // Pantalla de Niveles
         is Screen.Niveles -> {
             val screen = currentScreen as Screen.Niveles
             NivelesScreen(
@@ -120,21 +124,25 @@ fun AppNavigation(auth: FirebaseAuth) {
                 moduleName = screen.moduleName,
                 onBackClick = { currentScreen = Screen.RutaAprendizaje },
                 onLevelClick = { level ->
-                    currentScreen = Screen.PlanetDetail(level.id)
+                    // 🆕 Pasar el contexto del módulo
+                    currentScreen = Screen.PlanetDetail(
+                        levelId = level.id,
+                        moduleId = screen.moduleId,
+                        moduleName = screen.moduleName
+                    )
                 }
             )
         }
 
-        // 🆕 Pantalla de Detalle del Planeta
+        // Pantalla de Detalle del Planeta
         is Screen.PlanetDetail -> {
             val screen = currentScreen as Screen.PlanetDetail
             PlanetDetailScreen(
                 auth = auth,
                 levelId = screen.levelId,
                 onBackClick = {
-                    // Volver a la pantalla de niveles
-                    // Nota: Necesitarías mantener el moduleId y moduleName en el estado
-                    currentScreen = Screen.RutaAprendizaje
+                    // 🆕 Volver correctamente a la pantalla de niveles
+                    currentScreen = Screen.Niveles(screen.moduleId, screen.moduleName)
                 }
             )
         }
