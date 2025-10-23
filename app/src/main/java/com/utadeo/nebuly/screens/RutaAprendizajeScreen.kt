@@ -36,6 +36,7 @@ fun RutaAprendizajeScreen(
     auth: FirebaseAuth,
     onBackClick: () -> Unit,
     onModuleClick: (LearningModule) -> Unit,
+    onAvatarClick: () -> Unit, // 🆕 Callback para ir a selección de avatares
     modifier: Modifier = Modifier
 ) {
     val repository = remember { LearningRepository() }
@@ -77,13 +78,15 @@ fun RutaAprendizajeScreen(
                 .padding(top = 80.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // UserHeader clickeable
             UserHeader(
                 auth = auth,
-                modifier = Modifier
-                    .padding(horizontal = 24.dp)
+                modifier = Modifier.padding(horizontal = 24.dp),
+                onClick = onAvatarClick
             )
 
             Spacer(modifier = Modifier.height(16.dp))
+
             // Título
             TitleHeader(text = "Ruta de aprendizaje")
 

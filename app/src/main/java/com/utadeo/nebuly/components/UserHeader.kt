@@ -2,6 +2,7 @@ package com.utadeo.nebuly.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
@@ -29,7 +30,8 @@ fun UserHeader(
     modifier: Modifier = Modifier,
     showCoins: Boolean = true,
     avatarSize: Int = 60,
-    onUserDataLoaded: ((User) -> Unit)? = null
+    onUserDataLoaded: ((User) -> Unit)? = null,
+    onClick: (() -> Unit)? = null // 🆕 Callback para hacer click
 ) {
     val userRepository = remember { UserRepository() }
     val avatarRepository = remember { AvatarRepository() }
@@ -114,6 +116,11 @@ fun UserHeader(
         user?.let { userData ->
             Row(
                 modifier = modifier
+                    .then(
+                        if (onClick != null) {
+                            Modifier.clickable { onClick() } // 🆕 Hacer clickeable si hay callback
+                        } else Modifier
+                    )
                     .background(
                         brush = Brush.horizontalGradient(
                             colors = listOf(
@@ -199,7 +206,7 @@ fun UserHeader(
                     )
 
                     if (showCoins) {
-                        // 🆕 Mostrar monedas en lugar de nivel
+                        // Mostrar monedas
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -284,13 +291,15 @@ fun CoinDisplay(
 @Composable
 fun UserHeaderCompact(
     auth: FirebaseAuth,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null // 🆕
 ) {
     UserHeader(
         auth = auth,
         modifier = modifier,
         showCoins = false,
-        avatarSize = 50
+        avatarSize = 50,
+        onClick = onClick // 🆕
     )
 }
 
@@ -298,12 +307,14 @@ fun UserHeaderCompact(
 @Composable
 fun UserHeaderLarge(
     auth: FirebaseAuth,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null // 🆕
 ) {
     UserHeader(
         auth = auth,
         modifier = modifier,
         showCoins = true,
-        avatarSize = 80
+        avatarSize = 80,
+        onClick = onClick // 🆕
     )
 }

@@ -22,6 +22,7 @@ fun MenuScreen(
     onBackClick: () -> Unit,
     onStoreClick: () -> Unit = {},
     onLearningClick: () -> Unit = {}, // 🆕 Callback para ruta de aprendizaje
+    onAvatarClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -45,10 +46,11 @@ fun MenuScreen(
         ) {
             Spacer(modifier = Modifier.height(80.dp))
 
-            // Header del usuario (muestra monedas)
+            // UserHeader clickeable
             UserHeader(
                 auth = auth,
-                modifier = Modifier.padding(bottom = 20.dp)
+                modifier = Modifier.padding(bottom = 20.dp),
+                onClick = onAvatarClick
             )
 
             // 🆕 Tarjeta Aprender - Navega a ruta de aprendizaje
