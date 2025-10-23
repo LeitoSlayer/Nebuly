@@ -202,6 +202,66 @@ class LearningRepository {
         }
     }
 
+    /**
+     * 🆕 Verifica si el siguiente nivel ya está desbloqueado
+     * (Si lo está, significa que ya completó este nivel antes)
+     */
+    suspend fun isNextLevelUnlocked(userId: String, currentLevelId: String): Result<Boolean> {
+        return try {
+            Log.e(TAG, "========================================")
+            Log.e(TAG, "🔍 VERIFICANDO SI SIGUIENTE NIVEL ESTÁ DESBLOQUEADO")
+            Log.e(TAG, "Nivel actual: $currentLevelId")
+            Log.e(TAG, "========================================")
+
+            val planetOrder = listOf(
+                "level_mercury",
+                "level_venus",
+                "level_earth",
+                "level_mars",
+                "level_jupiter",
+                "level_saturn",
+                "level_uranus",
+                "level_neptune"
+            )
+
+            val currentIndex = planetOrder.indexOf(currentLevelId)
+
+            // Si es el último nivel o nivel no válido
+            if (currentIndex == -1 || currentIndex >= planetOrder.size - 1) {
+                Log.e(TAG, "⚠️ Es el último nivel o nivel no válido")
+                return Result.success(false)
+            }
+
+            val nextLevelId = planetOrder[currentIndex + 1]
+            Log.e(TAG, "Siguiente nivel: $nextLevelId")
+
+            // Obtener usuario
+            val userDoc = usersCollection.document(userId).get().await()
+            if (!userDoc.exists()) {
+                Log.e(TAG, "❌ Usuario no encontrado")
+                return Result.failure(Exception("Usuario no encontrado"))
+            }
+
+            val user = userDoc.toObject(User::class.java)
+            if (user == null) {
+                Log.e(TAG, "❌ Error al convertir usuario")
+                return Result.failure(Exception("Error al procesar usuario"))
+            }
+
+            val isUnlocked = user.unlockedLevels.contains(nextLevelId)
+
+            Log.e(TAG, "Niveles desbloqueados del usuario: ${user.unlockedLevels}")
+            Log.e(TAG, "¿El siguiente nivel ($nextLevelId) está desbloqueado? $isUnlocked")
+            Log.e(TAG, "Conclusión: ${if(isUnlocked) "⚠️ Ya completó este nivel antes (NO DAR MONEDAS)" else "✅ Es primera vez (DAR MONEDAS)"}")
+            Log.e(TAG, "========================================")
+
+            Result.success(isUnlocked)
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ ERROR al verificar siguiente nivel: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
     suspend fun unlockModule(userId: String, moduleId: String): Result<Boolean> {
         return try {
             usersCollection.document(userId)
@@ -233,7 +293,7 @@ class LearningRepository {
         return try {
             Log.e(TAG, "========================================")
             Log.e(TAG, "COMPLETANDO NIVEL: $levelId")
-            Log.e(TAG, "Recompensa: $coinsReward monedas")
+            Log.e(TAG, "Recompensa: $coinsReward nebulones")
             Log.e(TAG, "========================================")
 
             val userRef = usersCollection.document(userId)
@@ -245,11 +305,11 @@ class LearningRepository {
                 Log.e(TAG, "Monedas actuales: $currentCoins")
                 Log.e(TAG, "Nuevas monedas: ${currentCoins + coinsReward}")
 
+                // Solo actualizar monedas (NO agregamos a unlockedLevels aquí)
                 transaction.update(userRef, "coins", currentCoins + coinsReward)
-                transaction.update(userRef, "unlockedLevels", FieldValue.arrayUnion(levelId))
             }.await()
 
-            Log.e(TAG, "✅ NIVEL COMPLETADO EXITOSAMENTE")
+            Log.e(TAG, "✅ NIVEL COMPLETADO - Monedas agregadas exitosamente")
             Result.success(true)
         } catch (e: Exception) {
             Log.e(TAG, "❌ ERROR AL COMPLETAR NIVEL: ${e.message}", e)
