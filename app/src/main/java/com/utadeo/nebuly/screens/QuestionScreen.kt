@@ -59,6 +59,27 @@ fun QuestionScreen(
     var showFeedback by remember { mutableStateOf(false) }
     var isProcessing by remember { mutableStateOf(false) }
 
+    // 🆕 Variables para validar si ya se ganaron las monedas
+    var isFirstTime by remember { mutableStateOf(true) }
+    var quizCompleted by remember { mutableStateOf(false) }
+    var showCompletionMessage by remember { mutableStateOf(false) }
+
+    // 🆕 Verificar si el siguiente nivel ya está desbloqueado (significa que ya completó este)
+    LaunchedEffect(levelId) {
+        scope.launch {
+            auth.currentUser?.uid?.let { userId ->
+                learningRepository.isNextLevelUnlocked(userId, levelId).fold(
+                    onSuccess = { isUnlocked ->
+                        isFirstTime = !isUnlocked
+                    },
+                    onFailure = {
+                        isFirstTime = true // En caso de error, asumimos primera vez
+                    }
+                )
+            }
+        }
+    }
+
     // Cargar preguntas
     LaunchedEffect(levelId) {
         scope.launch {
@@ -118,6 +139,17 @@ fun QuestionScreen(
                     }
                 }
             }
+            quizCompleted -> {
+                // 🆕 Pantalla de resultado final
+                QuizCompletionScreen(
+                    correctAnswers = correctAnswers,
+                    totalQuestions = questions.size,
+                    coinsEarned = if (isFirstTime) totalCoinsEarned else 0,
+                    isFirstTime = isFirstTime,
+                    passed = correctAnswers == questions.size, // 🆕 Debe responder todas correctamente
+                    onContinue = onQuizComplete
+                )
+            }
             questions.isNotEmpty() -> {
                 val currentQuestion = questions[currentQuestionIndex]
 
@@ -132,7 +164,8 @@ fun QuestionScreen(
                     // Indicador de progreso con planetas
                     PlanetProgressIndicator(
                         currentQuestion = currentQuestionIndex + 1,
-                        totalQuestions = questions.size
+                        totalQuestions = questions.size,
+                        correctAnswers = correctAnswers
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -171,9 +204,13 @@ fun QuestionScreen(
                                     isAnswerCorrect = index == currentQuestion.correctAnswer
                                     showFeedback = true
 
+                                    // 🆕 Contar respuestas correctas
                                     if (isAnswerCorrect == true) {
-                                        totalCoinsEarned += currentQuestion.reward
                                         correctAnswers++
+                                        // Solo sumar monedas si es primera vez
+                                        if (isFirstTime) {
+                                            totalCoinsEarned += currentQuestion.reward
+                                        }
                                     }
 
                                     // Avanzar automáticamente después de 2 segundos
@@ -187,32 +224,33 @@ fun QuestionScreen(
                                             isAnswerCorrect = null
                                             showFeedback = false
                                         } else {
-                                            // Quiz completado
-                                            isProcessing = true
+                                            // 🆕 Quiz completado - mostrar resultado
+                                            quizCompleted = true
 
-                                            auth.currentUser?.uid?.let { userId ->
-                                                // Actualizar monedas y desbloquear siguiente nivel
-                                                learningRepository.completeLevel(
-                                                    userId = userId,
-                                                    levelId = levelId,
-                                                    coinsReward = totalCoinsEarned
-                                                ).fold(
-                                                    onSuccess = {
-                                                        // Desbloquear siguiente nivel
-                                                        scope.launch {
-                                                            unlockNextLevel(
-                                                                userId = userId,
-                                                                currentLevelId = levelId,
-                                                                learningRepository = learningRepository
-                                                            )
-                                                            onQuizComplete()
+                                            // 🆕 Solo actualizar si es primera vez Y respondió todas correctamente
+                                            if (isFirstTime && correctAnswers == questions.size) {
+                                                isProcessing = true
+                                                auth.currentUser?.uid?.let { userId ->
+                                                    learningRepository.completeLevel(
+                                                        userId = userId,
+                                                        levelId = levelId,
+                                                        coinsReward = totalCoinsEarned
+                                                    ).fold(
+                                                        onSuccess = {
+                                                            scope.launch {
+                                                                unlockNextLevel(
+                                                                    userId = userId,
+                                                                    currentLevelId = levelId,
+                                                                    learningRepository = learningRepository
+                                                                )
+                                                            }
+                                                        },
+                                                        onFailure = {
+                                                            errorMessage = it.message
+                                                            isProcessing = false
                                                         }
-                                                    },
-                                                    onFailure = {
-                                                        errorMessage = it.message
-                                                        isProcessing = false
-                                                    }
-                                                )
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -232,7 +270,8 @@ fun QuestionScreen(
                     ) {
                         FeedbackCard(
                             isCorrect = isAnswerCorrect ?: false,
-                            coinsEarned = currentQuestion.reward
+                            coinsEarned = if (isFirstTime) currentQuestion.reward else 0,
+                            isFirstTime = isFirstTime
                         )
                     }
                 }
@@ -251,10 +290,134 @@ fun QuestionScreen(
     }
 }
 
+// 🆕 Pantalla de resultado final
+@Composable
+private fun QuizCompletionScreen(
+    correctAnswers: Int,
+    totalQuestions: Int,
+    coinsEarned: Int,
+    isFirstTime: Boolean,
+    passed: Boolean,
+    onContinue: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.7f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(32.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = if (passed) {
+                            listOf(Color(0xFF4CAF50), Color(0xFF8BC34A))
+                        } else {
+                            listOf(Color(0xFFDC143C), Color(0xFFFF6B6B))
+                        }
+                    )
+                )
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = if (passed) "🎉 ¡Felicidades!" else "😢 Intenta de nuevo",
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Respuestas correctas:",
+                fontSize = 18.sp,
+                color = Color.White.copy(alpha = 0.9f)
+            )
+
+            Text(
+                text = "$correctAnswers/$totalQuestions",
+                fontSize = 48.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.White
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (passed) {
+                if (isFirstTime) {
+                    Text(
+                        text = "Ganaste:",
+                        fontSize = 18.sp,
+                        color = Color.White.copy(alpha = 0.9f)
+                    )
+                    Text(
+                        text = "+$coinsEarned 🪙",
+                        fontSize = 36.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFFD700)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "¡Siguiente nivel desbloqueado!",
+                        fontSize = 16.sp,
+                        color = Color.White,
+                        textAlign = TextAlign.Center
+                    )
+                } else {
+                    Text(
+                        text = "Ya completaste este nivel",
+                        fontSize = 16.sp,
+                        color = Color.White.copy(alpha = 0.9f),
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "(No se otorgan más nebulones)",
+                        fontSize = 14.sp,
+                        color = Color.White.copy(alpha = 0.7f),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            } else {
+                Text(
+                    text = "Necesitas responder todas\nlas preguntas correctamente",
+                    fontSize = 16.sp,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 22.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Botón continuar
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(Color.White.copy(alpha = 0.2f))
+                    .clickable { onContinue() }
+                    .padding(horizontal = 48.dp, vertical = 16.dp)
+            ) {
+                Text(
+                    text = "Continuar",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun PlanetProgressIndicator(
     currentQuestion: Int,
-    totalQuestions: Int
+    totalQuestions: Int,
+    correctAnswers: Int
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -281,13 +444,21 @@ private fun PlanetProgressIndicator(
         }
     }
 
-    Text(
-        text = "$currentQuestion/$totalQuestions",
-        fontSize = 18.sp,
-        fontWeight = FontWeight.Bold,
-        color = Color.White,
-        modifier = Modifier.padding(start = 8.dp)
-    )
+    Spacer(modifier = Modifier.width(8.dp))
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = "$currentQuestion/$totalQuestions",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+        Text(
+            text = "✅ $correctAnswers",
+            fontSize = 14.sp,
+            color = Color(0xFF4CAF50)
+        )
+    }
 }
 
 @Composable
@@ -401,7 +572,8 @@ private fun AnswerOption(
 @Composable
 private fun FeedbackCard(
     isCorrect: Boolean,
-    coinsEarned: Int
+    coinsEarned: Int,
+    isFirstTime: Boolean
 ) {
     Box(
         modifier = Modifier
@@ -425,7 +597,7 @@ private fun FeedbackCard(
                 color = Color.White
             )
 
-            if (isCorrect) {
+            if (isCorrect && isFirstTime && coinsEarned > 0) {
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = "+$coinsEarned 🪙",
@@ -438,7 +610,6 @@ private fun FeedbackCard(
     }
 }
 
-// Función helper para animar el planeta actual
 @Composable
 private fun Modifier.animateEnhancedScale(): Modifier {
     val infiniteTransition = rememberInfiniteTransition(label = "scale")
@@ -457,15 +628,11 @@ private fun Modifier.animateEnhancedScale(): Modifier {
     })
 }
 
-/**
- * Desbloquea el siguiente nivel en el orden del sistema solar
- */
 private suspend fun unlockNextLevel(
     userId: String,
     currentLevelId: String,
     learningRepository: LearningRepository
 ) {
-    // Orden de los planetas
     val planetOrder = listOf(
         "level_mercury",
         "level_venus",
