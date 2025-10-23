@@ -30,6 +30,7 @@ import com.utadeo.nebuly.ui.theme.AppDimens
 import com.utadeo.nebuly.utils.loginUser
 import com.utadeo.nebuly.utils.validateLoginInputs
 import androidx.compose.ui.res.stringResource
+
 @Composable
 fun LoginScreen(
     auth: FirebaseAuth,
@@ -45,14 +46,9 @@ fun LoginScreen(
     val context = LocalContext.current
     val scrollState = rememberScrollState()
     val focusManager = LocalFocusManager.current
-
-    // FocusRequesters para navegación entre campos
     val passwordFocusRequester = remember { FocusRequester() }
 
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        // Imagen de fondo
+    Box(modifier = Modifier.fillMaxSize()) {
         Image(
             painter = painterResource(R.drawable.fondo_inicio_sesion),
             contentDescription = "Fondo de inicio de sesión",
@@ -60,7 +56,6 @@ fun LoginScreen(
             contentScale = ContentScale.Crop
         )
 
-        // Contenido scrollable
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -69,7 +64,6 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            // Botón para volver atrás
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -82,82 +76,89 @@ fun LoginScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(AppDimens.spacingExtraLarge()))
+            Spacer(modifier = Modifier.height(AppDimens.spacingLarge()))
 
-            // Imagen de perfil
+            // Logo de la app
             Image(
-                painter = painterResource(R.drawable.ic_persona),
-                contentDescription = "Icono usuario",
+                painter = painterResource(R.drawable.logo_nebuly_app),
+                contentDescription = "Logo Nebuly",
                 modifier = Modifier
-                    .size(AppDimens.avatarSize())
-                    .padding(bottom = AppDimens.spacingMedium())
+                    .size(280.dp)
+                    .padding(bottom = AppDimens.spacingLarge())
             )
 
-            // Campos de texto
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = AppDimens.spacingMedium()),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.Transparent
+                    // Morado espacial claro
+                    containerColor = Color(0x743C2C81).copy(alpha = 0.95f)
                 )
             ) {
                 Column(
-                    modifier = Modifier.padding(AppDimens.spacingMedium())
+                    modifier = Modifier.padding(20.dp)
                 ) {
-                    //Campo de Email con teclado de email
+                    // Campo de Email
                     OutlinedTextField(
                         value = email,
                         onValueChange = {
                             email = it
                             errorMessage = ""
                         },
-                        label = { Text(stringResource(R.string.campo_correo), color = Color.White) },
+                        label = {
+                            Text(
+                                stringResource(R.string.campo_correo),
+                                color = Color(0xFF2D1B4E)
+                            )
+                        },
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Email,
                             imeAction = ImeAction.Next
                         ),
                         keyboardActions = KeyboardActions(
-                            onNext = {
-                                passwordFocusRequester.requestFocus()
-                            }
+                            onNext = { passwordFocusRequester.requestFocus() }
                         ),
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = AppDimens.spacingMedium()),
+                            .padding(bottom = 16.dp),
                         enabled = !isLoading,
                         shape = MaterialTheme.shapes.extraLarge,
                         colors = TextFieldDefaults.colors(
-                            unfocusedTextColor = Color.White,
-                            focusedTextColor = Color.White,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
-                            focusedLabelColor = Color.White,
-                            cursorColor = Color.White,
-                            unfocusedIndicatorColor = Color.White.copy(alpha = 0.5f),
-                            focusedIndicatorColor = Color.White
+                            unfocusedTextColor = Color(0xFF2D1B4E),
+                            focusedTextColor = Color(0xFF2D1B4E),
+                            unfocusedContainerColor = Color.White,
+                            focusedContainerColor = Color.White,
+                            unfocusedLabelColor = Color(0xFF2D1B4E).copy(alpha = 0.7f),
+                            focusedLabelColor = Color(0xFF7B68EE),
+                            cursorColor = Color(0xFF7B68EE),
+                            unfocusedIndicatorColor = Color(0xFF7B68EE).copy(alpha = 0.5f),
+                            focusedIndicatorColor = Color(0xFF7B68EE)
                         )
                     )
 
-                    //Campo de Contraseña
+                    // Campo de Contraseña
                     OutlinedTextField(
                         value = password,
                         onValueChange = {
                             password = it
                             errorMessage = ""
                         },
-                        label = { Text(stringResource(R.string.campo_contraseña), color = Color.White) },
+                        label = {
+                            Text(
+                                stringResource(R.string.campo_contraseña),
+                                color = Color(0xFF2D1B4E)
+                            )
+                        },
                         visualTransformation = PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Password,
-                            imeAction = ImeAction.Done //
+                            imeAction = ImeAction.Done
                         ),
                         keyboardActions = KeyboardActions(
                             onDone = {
-                                focusManager.clearFocus() //
-                                // Ejecutar login automáticamente
+                                focusManager.clearFocus()
                                 if (validateLoginInputs(email, password)) {
                                     loginUser(auth, email, password, context) { loading, error ->
                                         isLoading = loading
@@ -174,35 +175,32 @@ fun LoginScreen(
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .focusRequester(passwordFocusRequester)
-                            .padding(bottom = AppDimens.spacingSmall()),
+                            .focusRequester(passwordFocusRequester),
                         enabled = !isLoading,
                         shape = MaterialTheme.shapes.extraLarge,
                         colors = TextFieldDefaults.colors(
-                            unfocusedTextColor = Color.White,
-                            focusedTextColor = Color.White,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
-                            focusedLabelColor = Color.White,
-                            cursorColor = Color.White,
-                            unfocusedIndicatorColor = Color.White.copy(alpha = 0.5f),
-                            focusedIndicatorColor = Color.White
+                            unfocusedTextColor = Color(0xFF2D1B4E),
+                            focusedTextColor = Color(0xFF2D1B4E),
+                            unfocusedContainerColor = Color.White,
+                            focusedContainerColor = Color.White,
+                            unfocusedLabelColor = Color(0xFF2D1B4E).copy(alpha = 0.7f),
+                            focusedLabelColor = Color(0xFF7B68EE),
+                            cursorColor = Color(0xFF7B68EE),
+                            unfocusedIndicatorColor = Color(0xFF7B68EE).copy(alpha = 0.5f),
+                            focusedIndicatorColor = Color(0xFF7B68EE)
                         )
                     )
                 }
             }
 
-            // Mensaje de error
             if (errorMessage.isNotEmpty()) {
                 Text(
                     text = errorMessage,
                     color = Color(0xFFFF6B6B),
-                    modifier = Modifier.padding(bottom = AppDimens.spacingMedium())
+                    modifier = Modifier.padding(vertical = AppDimens.spacingMedium())
                 )
             }
 
-            // Botón de Iniciar Sesión
             ActionButton(
                 text = stringResource(R.string.iniciar_sesion),
                 isLoading = isLoading,
@@ -224,7 +222,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(AppDimens.spacingMedium()))
 
-            // Link para registrarse
             TextButton(onClick = onNavigateToRegister) {
                 Text(
                     text = stringResource(R.string.sin_cuenta),
@@ -233,7 +230,6 @@ fun LoginScreen(
                 )
             }
 
-            // Espacio extra al final para pantallas pequeñas
             Spacer(modifier = Modifier.height(AppDimens.spacingLarge()))
         }
     }
