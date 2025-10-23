@@ -172,52 +172,14 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(AppDimens.spacingLarge()))
 
-            // Box con imagen de perfil + botón de editar
-            Box(
+            // Logo de la app
+            Image(
+                painter = painterResource(R.drawable.logo_nebuly_app),
+                contentDescription = "Logo Nebuly",
                 modifier = Modifier
-                    .size(AppDimens.avatarSize())
-                    .padding(bottom = AppDimens.spacingMedium()),
-                contentAlignment = Alignment.Center
-            ) {
-                if (currentAvatarUrl != null) {
-                    AsyncImage(
-                        model = currentAvatarUrl,
-                        contentDescription = "Avatar del usuario",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.2f)),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Image(
-                        painter = painterResource(R.drawable.ic_persona),
-                        contentDescription = "Icono usuario",
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-
-                if (currentUserId != null) {
-                    IconButton(
-                        onClick = {
-                            currentUserId?.let { userId ->
-                                onNavigateToAvatarSelection(userId)
-                            }
-                        },
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .size(48.dp)
-                            .background(Color(0xFFE8B4F0), CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Editar avatar",
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-            }
+                    .size(280.dp)
+                    .padding(bottom = AppDimens.spacingLarge())
+            )
 
             // Campos de texto
             Card(
@@ -225,7 +187,7 @@ fun RegisterScreen(
                     .fillMaxWidth()
                     .padding(vertical = AppDimens.spacingMedium()),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.Transparent
+                    containerColor = Color(0x743C2C81).copy(alpha = 0.95f)
                 )
             ) {
                 Column(

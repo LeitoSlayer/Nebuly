@@ -73,16 +73,6 @@ fun ComienzoScreen(
         // Estrellas animadas de fondo
         AnimatedStars()
 
-        // Logo en la parte superior
-        Image(
-            painter = painterResource(R.drawable.logo_nebuly_app),
-            contentDescription = "Logo app",
-            modifier = Modifier
-                .size(180.dp)
-                .align(Alignment.TopEnd)
-                .padding(top = 10.dp, end = 10.dp)
-        )
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -109,22 +99,13 @@ fun ComienzoScreen(
                         .padding(bottom = 30.dp)
                 )
 
-                // Título con gradiente colorido
+                // Título blanco brillante
                 Text(
                     text = "Bienvenido",
                     fontSize = 40.sp,
                     fontFamily = stardosStencil,
                     fontWeight = FontWeight.Bold,
-                    style = androidx.compose.ui.text.TextStyle(
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                Color(0xFFFFD700),  // Dorado
-                                Color(0xFFFF6EC7),  // Rosa
-                                Color(0xFF4A90E2),  // Azul
-                                Color(0xFF9D4EDD)   // Morado
-                            )
-                        )
-                    ),
+                    color = Color.White,
                     modifier = Modifier.padding(bottom = 20.dp)
                 )
 
@@ -189,6 +170,49 @@ fun ComienzoScreen(
             contentAlignment = Alignment.TopStart
         ) {
             BackButton(onClick = onBackClick)
+        }
+    }
+}
+
+@Composable
+fun ShimmerText(
+    text: String,
+    fontSize: androidx.compose.ui.unit.TextUnit,
+    fontFamily: FontFamily,
+    fontWeight: FontWeight,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
+
+    val shimmerProgress by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = text.length.toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmer_progress"
+    )
+
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        text.forEachIndexed { index, char ->
+            val distance = kotlin.math.abs(shimmerProgress - index)
+            val brightness = when {
+                distance < 0.5f -> 1f
+                distance < 1.5f -> 0.7f
+                else -> 0.4f
+            }
+
+            Text(
+                text = char.toString(),
+                fontSize = fontSize,
+                fontFamily = fontFamily,
+                fontWeight = fontWeight,
+                color = Color.White.copy(alpha = brightness)
+            )
         }
     }
 }
