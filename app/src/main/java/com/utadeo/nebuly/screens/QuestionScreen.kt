@@ -591,7 +591,7 @@ private fun FeedbackCard(
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
-                text = if (isCorrect) "¡Correcto! 🎉" else "Incorrecto 😢",
+                text = if (isCorrect) "¡Correcto!" else "Incorrecto ",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
