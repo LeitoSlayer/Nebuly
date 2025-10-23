@@ -22,7 +22,7 @@ sealed class Screen {
     object Welcome : Screen()
     object Login : Screen()
     object Register : Screen()
-    data class AvatarSelection(val userId: String) : Screen()
+    data class AvatarSelection(val userId: String, val returnTo: Screen? = null) : Screen() // 🆕 returnTo
     object Comienzo : Screen()
     object Menu : Screen()
     object Store : Screen()
@@ -36,8 +36,6 @@ sealed class Screen {
         val moduleId: String,
         val moduleName: String
     ) : Screen()
-
-    // 🆕 Pantalla de cuestionario
     data class Question(
         val levelId: String,
         val moduleId: String,
@@ -48,6 +46,7 @@ sealed class Screen {
 @Composable
 fun AppNavigation(auth: FirebaseAuth) {
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Welcome) }
+    var previousScreen by remember { mutableStateOf<Screen?>(null) } // 🆕 Para recordar de dónde viene
 
     when (currentScreen) {
         is Screen.Welcome -> WelcomeScreen(
@@ -67,15 +66,18 @@ fun AppNavigation(auth: FirebaseAuth) {
             onBackClick = { currentScreen = Screen.Welcome },
             onNavigateToLogin = { currentScreen = Screen.Login },
             onNavigateToAvatarSelection = { userId ->
-                currentScreen = Screen.AvatarSelection(userId)
+                currentScreen = Screen.AvatarSelection(userId, returnTo = null)
             }
         )
 
         is Screen.AvatarSelection -> {
-            val userId = (currentScreen as Screen.AvatarSelection).userId
+            val screen = currentScreen as Screen.AvatarSelection
             AvatarSelectionScreen(
-                userId = userId,
-                onBackClick = { currentScreen = Screen.Register }
+                userId = screen.userId,
+                onBackClick = {
+                    // 🆕 Si tiene returnTo, volver ahí, sino al registro
+                    currentScreen = screen.returnTo ?: Screen.Register
+                }
             )
         }
 
@@ -88,7 +90,16 @@ fun AppNavigation(auth: FirebaseAuth) {
             auth = auth,
             onBackClick = { currentScreen = Screen.Comienzo },
             onStoreClick = { currentScreen = Screen.Store },
-            onLearningClick = { currentScreen = Screen.RutaAprendizaje }
+            onLearningClick = { currentScreen = Screen.RutaAprendizaje },
+            onAvatarClick = { // 🆕 Callback para ir a selección de avatares
+                auth.currentUser?.uid?.let { userId ->
+                    previousScreen = currentScreen // Guardar pantalla actual
+                    currentScreen = Screen.AvatarSelection(
+                        userId = userId,
+                        returnTo = Screen.RutaAprendizaje // 🆕 Para volver aquí
+                    )
+                }
+            }
         )
 
         is Screen.Store -> StoreScreen(
@@ -120,6 +131,15 @@ fun AppNavigation(auth: FirebaseAuth) {
             onBackClick = { currentScreen = Screen.Menu },
             onModuleClick = { module ->
                 currentScreen = Screen.Niveles(module.id, module.name)
+            },
+            onAvatarClick = { // 🆕 Callback para ir a selección de avatares
+                auth.currentUser?.uid?.let { userId ->
+                    previousScreen = currentScreen // Guardar pantalla actual
+                    currentScreen = Screen.AvatarSelection(
+                        userId = userId,
+                        returnTo = Screen.RutaAprendizaje // 🆕 Para volver aquí
+                    )
+                }
             }
         )
 
@@ -171,7 +191,6 @@ fun AppNavigation(auth: FirebaseAuth) {
                 moduleId = screen.moduleId,
                 moduleName = screen.moduleName,
                 onBackClick = {
-                    // Volver al detalle del planeta
                     currentScreen = Screen.PlanetDetail(
                         levelId = screen.levelId,
                         moduleId = screen.moduleId,
@@ -179,7 +198,6 @@ fun AppNavigation(auth: FirebaseAuth) {
                     )
                 },
                 onQuizComplete = {
-                    // Al completar, volver a la lista de niveles
                     currentScreen = Screen.Niveles(screen.moduleId, screen.moduleName)
                 }
             )
