@@ -109,7 +109,7 @@ fun LoginScreen(
                         label = {
                             Text(
                                 stringResource(R.string.campo_correo),
-                                color = Color(0xFF2D1B4E)
+                                color = Color(0xFFFFFFFF)
                             )
                         },
                         keyboardOptions = KeyboardOptions(
@@ -128,8 +128,8 @@ fun LoginScreen(
                         colors = TextFieldDefaults.colors(
                             unfocusedTextColor = Color(0xFF2D1B4E),
                             focusedTextColor = Color(0xFF2D1B4E),
-                            unfocusedContainerColor = Color.White,
-                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedContainerColor = Color.Transparent,
                             unfocusedLabelColor = Color(0xFF2D1B4E).copy(alpha = 0.7f),
                             focusedLabelColor = Color(0xFF7B68EE),
                             cursorColor = Color(0xFF7B68EE),
@@ -148,7 +148,7 @@ fun LoginScreen(
                         label = {
                             Text(
                                 stringResource(R.string.campo_contraseña),
-                                color = Color(0xFF2D1B4E)
+                                color = Color(0xFFFFFFFF)
                             )
                         },
                         visualTransformation = PasswordVisualTransformation(),
@@ -179,10 +179,10 @@ fun LoginScreen(
                         enabled = !isLoading,
                         shape = MaterialTheme.shapes.extraLarge,
                         colors = TextFieldDefaults.colors(
-                            unfocusedTextColor = Color(0xFF2D1B4E),
-                            focusedTextColor = Color(0xFF2D1B4E),
-                            unfocusedContainerColor = Color.White,
-                            focusedContainerColor = Color.White,
+                            unfocusedTextColor = Color(0xFFFFFFFF),
+                            focusedTextColor = Color(0xFFFFFFFF),
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedContainerColor = Color.Transparent,
                             unfocusedLabelColor = Color(0xFF2D1B4E).copy(alpha = 0.7f),
                             focusedLabelColor = Color(0xFF7B68EE),
                             cursorColor = Color(0xFF7B68EE),
