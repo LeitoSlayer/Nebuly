@@ -172,9 +172,10 @@ fun AvatarDetailScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text(
-                            text = "💰",
-                            fontSize = 32.sp
+                        Image(
+                            painter = painterResource(R.drawable.moneda_diseno),
+                            contentDescription = "Moneda",
+                            modifier = Modifier.size(28.dp)
                         )
                         Text(
                             text = "${avatar.requiredCoins}",

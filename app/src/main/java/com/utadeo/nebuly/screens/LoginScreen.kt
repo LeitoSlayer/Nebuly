@@ -1,5 +1,12 @@
+// ============================================
+// LoginScreen.kt - Diseño para Niños
+// ============================================
+
 package com.utadeo.nebuly.screens
 
+
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -78,7 +85,7 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(AppDimens.spacingLarge()))
 
-            // Logo de la app
+            // Logo de la app en lugar del ícono de perfil
             Image(
                 painter = painterResource(R.drawable.logo_nebuly_app),
                 contentDescription = "Logo Nebuly",
@@ -87,15 +94,23 @@ fun LoginScreen(
                     .padding(bottom = AppDimens.spacingLarge())
             )
 
-            Card(
+            // Card con imagen de fondo
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = AppDimens.spacingMedium()),
-                colors = CardDefaults.cardColors(
-                    // Morado espacial claro
-                    containerColor = Color(0x743C2C81).copy(alpha = 0.95f)
-                )
+                    .padding(vertical = AppDimens.spacingMedium())
+                    .clip(RoundedCornerShape(24.dp))
             ) {
+                // Imagen de fondo del card
+                Image(
+                    painter = painterResource(R.drawable.fondo_inicio_registro),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .matchParentSize(),
+                    contentScale = ContentScale.Crop
+                )
+
                 Column(
                     modifier = Modifier.padding(20.dp)
                 ) {
@@ -109,7 +124,7 @@ fun LoginScreen(
                         label = {
                             Text(
                                 stringResource(R.string.campo_correo),
-                                color = Color(0xFFFFFFFF)
+                                color = Color.White
                             )
                         },
                         keyboardOptions = KeyboardOptions(
@@ -126,15 +141,15 @@ fun LoginScreen(
                         enabled = !isLoading,
                         shape = MaterialTheme.shapes.extraLarge,
                         colors = TextFieldDefaults.colors(
-                            unfocusedTextColor = Color(0xFF2D1B4E),
-                            focusedTextColor = Color(0xFF2D1B4E),
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedLabelColor = Color(0xFF2D1B4E).copy(alpha = 0.7f),
-                            focusedLabelColor = Color(0xFF7B68EE),
-                            cursorColor = Color(0xFF7B68EE),
-                            unfocusedIndicatorColor = Color(0xFF7B68EE).copy(alpha = 0.5f),
-                            focusedIndicatorColor = Color(0xFF7B68EE)
+                            unfocusedTextColor = Color.White,
+                            focusedTextColor = Color.White,
+                            unfocusedContainerColor = Color.White.copy(alpha = 0.2f),
+                            focusedContainerColor = Color.White.copy(alpha = 0.3f),
+                            unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
+                            focusedLabelColor = Color.White,
+                            cursorColor = Color.White,
+                            unfocusedIndicatorColor = Color.White.copy(alpha = 0.5f),
+                            focusedIndicatorColor = Color.White
                         )
                     )
 
@@ -148,7 +163,7 @@ fun LoginScreen(
                         label = {
                             Text(
                                 stringResource(R.string.campo_contraseña),
-                                color = Color(0xFFFFFFFF)
+                                color = Color.White
                             )
                         },
                         visualTransformation = PasswordVisualTransformation(),
@@ -179,20 +194,19 @@ fun LoginScreen(
                         enabled = !isLoading,
                         shape = MaterialTheme.shapes.extraLarge,
                         colors = TextFieldDefaults.colors(
-                            unfocusedTextColor = Color(0xFFFFFFFF),
-                            focusedTextColor = Color(0xFFFFFFFF),
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedLabelColor = Color(0xFF2D1B4E).copy(alpha = 0.7f),
-                            focusedLabelColor = Color(0xFF7B68EE),
-                            cursorColor = Color(0xFF7B68EE),
-                            unfocusedIndicatorColor = Color(0xFF7B68EE).copy(alpha = 0.5f),
-                            focusedIndicatorColor = Color(0xFF7B68EE)
+                            unfocusedTextColor = Color.White,
+                            focusedTextColor = Color.White,
+                            unfocusedContainerColor = Color.White.copy(alpha = 0.2f),
+                            focusedContainerColor = Color.White.copy(alpha = 0.3f),
+                            unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
+                            focusedLabelColor = Color.White,
+                            cursorColor = Color.White,
+                            unfocusedIndicatorColor = Color.White.copy(alpha = 0.5f),
+                            focusedIndicatorColor = Color.White
                         )
                     )
                 }
             }
-
             if (errorMessage.isNotEmpty()) {
                 Text(
                     text = errorMessage,

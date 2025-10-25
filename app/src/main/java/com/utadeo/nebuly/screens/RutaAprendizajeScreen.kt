@@ -24,19 +24,17 @@ import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.utadeo.nebuly.R
 import com.utadeo.nebuly.components.BackButton
-import com.utadeo.nebuly.components.TitleHeader
 import com.utadeo.nebuly.components.UserHeader
 import com.utadeo.nebuly.data.models.LearningModule
 import com.utadeo.nebuly.data.repository.LearningRepository
 import kotlinx.coroutines.launch
-import androidx.compose.runtime.Composable
 
 @Composable
 fun RutaAprendizajeScreen(
     auth: FirebaseAuth,
     onBackClick: () -> Unit,
     onModuleClick: (LearningModule) -> Unit,
-    onAvatarClick: () -> Unit, // 🆕 Callback para ir a selección de avatares
+    onAvatarClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val repository = remember { LearningRepository() }
@@ -45,7 +43,6 @@ fun RutaAprendizajeScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
-    // Cargar módulos al inicio
     LaunchedEffect(Unit) {
         scope.launch {
             auth.currentUser?.uid?.let { userId ->
@@ -64,7 +61,6 @@ fun RutaAprendizajeScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        // Fondo espacial
         Image(
             painter = painterResource(id = R.drawable.fondo_inicio_sesion),
             contentDescription = null,
@@ -78,7 +74,7 @@ fun RutaAprendizajeScreen(
                 .padding(top = 80.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // UserHeader clickeable
+            // UserHeader original (sin cambios)
             UserHeader(
                 auth = auth,
                 modifier = Modifier.padding(horizontal = 24.dp),
@@ -87,8 +83,29 @@ fun RutaAprendizajeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Título
-            TitleHeader(text = "Ruta de aprendizaje")
+            // Título con imagen de fondo y bordes muy redondeados
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .height(60.dp)
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.fondo_ruta_aprendizaje),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(40.dp)),
+                    contentScale = ContentScale.Crop
+                )
+
+                Text(
+                    text = "Ruta de aprendizaje",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -114,7 +131,6 @@ fun RutaAprendizajeScreen(
                     }
                 }
                 else -> {
-                    // Lista de módulos
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
@@ -137,7 +153,6 @@ fun RutaAprendizajeScreen(
             }
         }
 
-        // Botón de retroceso
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -160,19 +175,34 @@ private fun ModuleCard(
             .fillMaxWidth()
             .height(140.dp)
             .clip(RoundedCornerShape(20.dp))
-            .background(
-                if (module.isLocked) Color(0xFF2C2C2C).copy(alpha = 0.8f)
-                else Color(0xFF1A237E).copy(alpha = 0.9f)
-            )
             .clickable(enabled = !module.isLocked) { onClick() }
     ) {
+        // Fondo según el módulo
+        if (module.name == "Sistema Solar" && !module.isLocked) {
+            Image(
+                painter = painterResource(R.drawable.fondo_sistemasolar_ruta),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            // Para módulos bloqueados u otros módulos
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        if (module.isLocked) Color(0xFF2C2C2C).copy(alpha = 0.8f)
+                        else Color(0xFF1A237E).copy(alpha = 0.9f)
+                    )
+            )
+        }
+
         Row(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Imagen del módulo
             Box(
                 modifier = Modifier
                     .size(100.dp)
@@ -186,7 +216,6 @@ private fun ModuleCard(
                     contentScale = ContentScale.Crop
                 )
 
-                // Candado si está bloqueado
                 if (module.isLocked) {
                     Box(
                         modifier = Modifier
@@ -204,12 +233,10 @@ private fun ModuleCard(
 
             Spacer(modifier = Modifier.width(16.dp))
 
-            // Información del módulo
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center
-            )
-            {
+            ) {
                 Text(
                     text = module.name,
                     fontSize = 18.sp,

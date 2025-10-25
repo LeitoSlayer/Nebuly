@@ -2,15 +2,12 @@ package com.utadeo.nebuly.screens
 
 import android.util.Log
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,7 +24,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.utadeo.nebuly.R
 import com.utadeo.nebuly.components.ActionButton
@@ -50,21 +46,15 @@ fun RegisterScreen(
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
 
-    var currentAvatarUrl by remember { mutableStateOf<String?>(null) }
-    var currentUserId by remember { mutableStateOf<String?>(null) }
-
     val scrollState = rememberScrollState()
     val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
     val userRepository = remember { UserRepository() }
 
-    // FocusRequesters para navegación entre campos
     val emailFocusRequester = remember { FocusRequester() }
     val passwordFocusRequester = remember { FocusRequester() }
 
-    // 🆕 Función para registrar usuario (reemplaza registerUser())
     fun performRegistration() {
-        // Validaciones básicas
         if (username.isBlank() || email.isBlank() || password.isBlank()) {
             errorMessage = "Todos los campos son obligatorios"
             return
@@ -87,7 +77,6 @@ fun RegisterScreen(
             try {
                 Log.d("RegisterScreen", "🔹 Iniciando registro para: $email")
 
-                // 1️⃣ Crear usuario en Firebase Auth
                 val authResult = auth.createUserWithEmailAndPassword(email, password).await()
                 val userId = authResult.user?.uid
 
@@ -99,7 +88,6 @@ fun RegisterScreen(
 
                 Log.d("RegisterScreen", "✅ Usuario creado en Auth: $userId")
 
-                // 2️⃣ Crear documento en Firestore
                 userRepository.createUser(
                     userId = userId,
                     username = username,
@@ -111,9 +99,6 @@ fun RegisterScreen(
                         Log.d("RegisterScreen", "Niveles desbloqueados: ${user.unlockedLevels}")
 
                         isLoading = false
-                        currentUserId = userId
-
-                        // 3️⃣ Navegar a selección de avatar
                         onNavigateToAvatarSelection(userId)
                     },
                     onFailure = { e ->
@@ -141,7 +126,6 @@ fun RegisterScreen(
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
-        // Imagen de fondo
         Image(
             painter = painterResource(R.drawable.fondo_inicio_sesion),
             contentDescription = "Fondo de registro",
@@ -157,7 +141,6 @@ fun RegisterScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            // Botón para volver atrás
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -172,7 +155,6 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(AppDimens.spacingLarge()))
 
-            // Logo de la app
             Image(
                 painter = painterResource(R.drawable.logo_nebuly_app),
                 contentDescription = "Logo Nebuly",
@@ -181,19 +163,24 @@ fun RegisterScreen(
                     .padding(bottom = AppDimens.spacingLarge())
             )
 
-            // Campos de texto
-            Card(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = AppDimens.spacingMedium()),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0x743C2C81).copy(alpha = 0.95f)
-                )
+                    .padding(vertical = AppDimens.spacingMedium())
+                    .clip(RoundedCornerShape(24.dp))
             ) {
+                Image(
+                    painter = painterResource(R.drawable.fondo_inicio_registro),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .matchParentSize(),
+                    contentScale = ContentScale.Crop
+                )
+
                 Column(
-                    modifier = Modifier.padding(AppDimens.spacingMedium())
+                    modifier = Modifier.padding(20.dp)
                 ) {
-                    // Campo de Nombre de Usuario
                     OutlinedTextField(
                         value = username,
                         onValueChange = {
@@ -211,14 +198,14 @@ fun RegisterScreen(
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = AppDimens.spacingMedium()),
+                            .padding(bottom = 16.dp),
                         enabled = !isLoading,
                         shape = MaterialTheme.shapes.extraLarge,
                         colors = TextFieldDefaults.colors(
                             unfocusedTextColor = Color.White,
                             focusedTextColor = Color.White,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.White.copy(alpha = 0.2f),
+                            focusedContainerColor = Color.White.copy(alpha = 0.3f),
                             unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
                             focusedLabelColor = Color.White,
                             cursorColor = Color.White,
@@ -227,7 +214,6 @@ fun RegisterScreen(
                         )
                     )
 
-                    // Campo de Email
                     OutlinedTextField(
                         value = email,
                         onValueChange = {
@@ -246,14 +232,14 @@ fun RegisterScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .focusRequester(emailFocusRequester)
-                            .padding(bottom = AppDimens.spacingMedium()),
+                            .padding(bottom = 16.dp),
                         enabled = !isLoading,
                         shape = MaterialTheme.shapes.extraLarge,
                         colors = TextFieldDefaults.colors(
                             unfocusedTextColor = Color.White,
                             focusedTextColor = Color.White,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.White.copy(alpha = 0.2f),
+                            focusedContainerColor = Color.White.copy(alpha = 0.3f),
                             unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
                             focusedLabelColor = Color.White,
                             cursorColor = Color.White,
@@ -262,7 +248,6 @@ fun RegisterScreen(
                         )
                     )
 
-                    // Campo de Contraseña
                     OutlinedTextField(
                         value = password,
                         onValueChange = {
@@ -278,21 +263,20 @@ fun RegisterScreen(
                         keyboardActions = KeyboardActions(
                             onDone = {
                                 focusManager.clearFocus()
-                                performRegistration() // 🆕 Ejecutar al presionar Done
+                                performRegistration()
                             }
                         ),
                         singleLine = true,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .focusRequester(passwordFocusRequester)
-                            .padding(bottom = AppDimens.spacingSmall()),
+                            .focusRequester(passwordFocusRequester),
                         enabled = !isLoading,
                         shape = MaterialTheme.shapes.extraLarge,
                         colors = TextFieldDefaults.colors(
                             unfocusedTextColor = Color.White,
                             focusedTextColor = Color.White,
-                            unfocusedContainerColor = Color.Transparent,
-                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.White.copy(alpha = 0.2f),
+                            focusedContainerColor = Color.White.copy(alpha = 0.3f),
                             unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
                             focusedLabelColor = Color.White,
                             cursorColor = Color.White,
@@ -303,20 +287,18 @@ fun RegisterScreen(
                 }
             }
 
-            // Mensaje de error
             if (errorMessage.isNotEmpty()) {
                 Text(
                     text = errorMessage,
                     color = Color(0xFFFF6B6B),
-                    modifier = Modifier.padding(bottom = AppDimens.spacingMedium())
+                    modifier = Modifier.padding(vertical = AppDimens.spacingMedium())
                 )
             }
 
-            // Botón de Registro
             ActionButton(
                 text = stringResource(R.string.registro),
                 isLoading = isLoading,
-                onClick = { performRegistration() }, // 🆕 Usar nueva función
+                onClick = { performRegistration() },
                 modifier = Modifier.height(AppDimens.buttonHeight())
             )
 

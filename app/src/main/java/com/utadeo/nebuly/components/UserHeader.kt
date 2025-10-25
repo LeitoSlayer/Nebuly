@@ -1,5 +1,6 @@
 package com.utadeo.nebuly.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,11 +14,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
+import com.utadeo.nebuly.R
 import com.utadeo.nebuly.data.models.User
 import com.utadeo.nebuly.data.repository.UserRepository
 import com.utadeo.nebuly.data.repository.AvatarRepository
@@ -31,7 +34,7 @@ fun UserHeader(
     showCoins: Boolean = true,
     avatarSize: Int = 60,
     onUserDataLoaded: ((User) -> Unit)? = null,
-    onClick: (() -> Unit)? = null // 🆕 Callback para hacer click
+    onClick: (() -> Unit)? = null
 ) {
     val userRepository = remember { UserRepository() }
     val avatarRepository = remember { AvatarRepository() }
@@ -40,21 +43,18 @@ fun UserHeader(
     var isLoading by remember { mutableStateOf(true) }
     val scope = rememberCoroutineScope()
 
-    // Cargar datos del usuario
     LaunchedEffect(auth.currentUser?.uid) {
         scope.launch {
             auth.currentUser?.uid?.let { userId ->
                 try {
                     Log.d("UserHeader", "Cargando datos para usuario: $userId")
 
-                    // Obtener usuario
                     val userResult = userRepository.getUser(userId)
                     userResult.onSuccess { userData ->
                         user = userData
                         onUserDataLoaded?.invoke(userData)
                         Log.d("UserHeader", "Usuario cargado: ${userData.username}, Coins: ${userData.coins}, Avatar: ${userData.currentAvatarId}")
 
-                        // Obtener URL del avatar actual
                         val avatarsResult = avatarRepository.getAllAvatars()
                         avatarsResult.onSuccess { avatars ->
                             val currentAvatar = avatars.find { it.id == userData.currentAvatarId }
@@ -77,7 +77,6 @@ fun UserHeader(
     }
 
     if (isLoading) {
-        // Placeholder mientras carga
         Row(
             modifier = modifier
                 .background(
@@ -118,7 +117,7 @@ fun UserHeader(
                 modifier = modifier
                     .then(
                         if (onClick != null) {
-                            Modifier.clickable { onClick() } // 🆕 Hacer clickeable si hay callback
+                            Modifier.clickable { onClick() }
                         } else Modifier
                     )
                     .background(
@@ -143,7 +142,6 @@ fun UserHeader(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Avatar
                 Box(
                     modifier = Modifier
                         .size(avatarSize.dp)
@@ -177,7 +175,6 @@ fun UserHeader(
                             contentScale = ContentScale.Crop
                         )
                     } else {
-                        // Avatar por defecto con inicial
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
@@ -194,7 +191,6 @@ fun UserHeader(
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                // Información del usuario
                 Column(
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -206,14 +202,15 @@ fun UserHeader(
                     )
 
                     if (showCoins) {
-                        // Mostrar monedas
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Text(
-                                text = "💰",
-                                fontSize = 14.sp
+                            // Imagen de moneda personalizada
+                            Image(
+                                painter = painterResource(R.drawable.moneda_diseno),
+                                contentDescription = "Moneda",
+                                modifier = Modifier.size(28.dp)
                             )
                             Text(
                                 text = "${userData.coins} Nebulones",
@@ -229,7 +226,6 @@ fun UserHeader(
     }
 }
 
-// 🆕 Variante solo para mostrar monedas
 @Composable
 fun CoinDisplay(
     auth: FirebaseAuth,
@@ -274,9 +270,11 @@ fun CoinDisplay(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text(
-            text = "💰",
-            fontSize = 20.sp
+        // Imagen de moneda personalizada
+        Image(
+            painter = painterResource(R.drawable.moneda_diseno),
+            contentDescription = "Moneda",
+            modifier = Modifier.size(34.dp)
         )
         Text(
             text = if (isLoading) "..." else coins.toString(),
@@ -287,34 +285,32 @@ fun CoinDisplay(
     }
 }
 
-// Variante compacta (solo avatar y nombre, sin monedas)
 @Composable
 fun UserHeaderCompact(
     auth: FirebaseAuth,
     modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null // 🆕
+    onClick: (() -> Unit)? = null
 ) {
     UserHeader(
         auth = auth,
         modifier = modifier,
         showCoins = false,
         avatarSize = 50,
-        onClick = onClick // 🆕
+        onClick = onClick
     )
 }
 
-// Variante grande (para páginas de perfil)
 @Composable
 fun UserHeaderLarge(
     auth: FirebaseAuth,
     modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null // 🆕
+    onClick: (() -> Unit)? = null
 ) {
     UserHeader(
         auth = auth,
         modifier = modifier,
         showCoins = true,
         avatarSize = 80,
-        onClick = onClick // 🆕
+        onClick = onClick
     )
 }

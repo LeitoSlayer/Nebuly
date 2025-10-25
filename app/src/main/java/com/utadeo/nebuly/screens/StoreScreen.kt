@@ -356,9 +356,10 @@ fun AvatarCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = stringResource(id = R.string.store_coin_icon),
-                        fontSize = 24.sp
+                    Image(
+                        painter = painterResource(R.drawable.moneda_diseno),  // Nota: usa guión bajo, no punto
+                        contentDescription = "Moneda",
+                        modifier = Modifier.size(28.dp)
                     )
                     Text(
                         text = "${avatar.requiredCoins}",
