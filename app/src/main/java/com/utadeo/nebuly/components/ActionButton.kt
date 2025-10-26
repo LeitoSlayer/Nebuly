@@ -1,16 +1,20 @@
 package com.utadeo.nebuly.components
 
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -27,25 +31,38 @@ fun ActionButton(
 ) {
     val aoboshiOne = FontFamily(Font(R.font.aoboshi_one_regular, FontWeight.Normal))
 
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "action_button_scale"
+    //  Animación del brillo en el borde
+    val infiniteTransition = rememberInfiniteTransition(label = "shine")
+    val offset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 300f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "shine_offset"
+    )
+
+    //  Gradiente blanco brillante animado
+    val shinyBorder = Brush.linearGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.9f),
+            Color.Transparent,
+            Color.White.copy(alpha = 0.9f)
+        ),
+        start = androidx.compose.ui.geometry.Offset(offset, 0f),
+        end = androidx.compose.ui.geometry.Offset(offset + 300f, 300f)
     )
 
     Button(
-        onClick = {
-            if (!isLoading) {
-                isPressed = true
-                onClick()
-            }
-        },
+        onClick = { if (!isLoading) onClick() },
         modifier = modifier
             .fillMaxWidth()
             .height(60.dp)
             .padding(vertical = 4.dp)
-            .scale(scale),
+            //  Borde blanco brillante
+            .border(BorderStroke(3.dp, shinyBorder), RoundedCornerShape(35.dp))
+            .clip(RoundedCornerShape(35.dp)),
         enabled = !isLoading,
         colors = ButtonDefaults.buttonColors(
             containerColor = Color.Transparent,
@@ -56,28 +73,21 @@ fun ActionButton(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    brush = if (isLoading) {
-                        Brush.horizontalGradient(
-                            colors = listOf(
-                                Color(0xFF7B68EE).copy(alpha = 0.5f),
-                                Color(0xFF4A90E2).copy(alpha = 0.5f),
-                                Color(0xFF9D4EDD).copy(alpha = 0.5f)
-                            )
-                        )
-                    } else {
-                        Brush.horizontalGradient(
-                            colors = listOf(
-                                Color(0xFF7B68EE),  // Violeta
-                                Color(0xFF4A90E2),  // Azul
-                                Color(0xFF9D4EDD)   // Morado
-                            )
-                        )
-                    },
-                    shape = RoundedCornerShape(35.dp)
-                ),
+                .clip(RoundedCornerShape(35.dp)),
             contentAlignment = Alignment.Center
         ) {
+            // Imagen de fondo
+            Image(
+                painter = painterResource(R.drawable.botones_inicio_registro),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(35.dp)),
+                contentScale = ContentScale.Crop,
+                alpha = if (isLoading) 0.5f else 1f
+            )
+
+            // Contenido dinámico
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(28.dp),
