@@ -1,20 +1,23 @@
 package com.utadeo.nebuly.screens.learning
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -36,10 +39,10 @@ import kotlinx.coroutines.launch
 fun PlanetDetailScreen(
     auth: FirebaseAuth,
     levelId: String,
-    moduleId: String,  // 🆕 Recibimos el módulo
-    moduleName: String,  // 🆕 Recibimos el nombre del módulo
+    moduleId: String,
+    moduleName: String,
     onBackClick: () -> Unit,
-    onStartQuiz: () -> Unit,  // 🆕 Navegar al cuestionario
+    onStartQuiz: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val repository = remember { LearningRepository() }
@@ -123,20 +126,11 @@ fun PlanetDetailScreen(
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // Imagen del planeta
-                    Box(
-                        modifier = Modifier
-                            .size(200.dp)
-                            .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.1f))
-                    ) {
-                        AsyncImage(
-                            model = planet.planetImageUrl,
-                            contentDescription = planet.planetName,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
+                    // Imagen del planeta con borde animado y glow
+                    PlanetImageWithGlow(
+                        imageUrl = planet.planetImageUrl,
+                        planetName = planet.planetName
+                    )
 
                     Spacer(modifier = Modifier.height(24.dp))
 
@@ -170,45 +164,14 @@ fun PlanetDetailScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Recompensa TOTAL (250 nebulones por las 5 preguntas)
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(
-                                        Color(0xFF4CAF50).copy(alpha = 0.8f),
-                                        Color(0xFF8BC34A).copy(alpha = 0.8f)
-                                    )
-                                )
-                            )
-                            .padding(horizontal = 24.dp, vertical = 16.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = "🏆 Recompensa total:",
-                                fontSize = 18.sp,
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "250 Nebulones 🪙",
-                                fontSize = 20.sp,
-                                color = Color(0xFFFFD700),
-                                fontWeight = FontWeight.ExtraBold
-                            )
-                        }
-                    }
+                    // Recompensa con borde dorado animado
+                    RewardBoxAnimated()
 
                     Spacer(modifier = Modifier.height(8.dp))
 
                     // Info adicional
                     Text(
-                        text = "5 preguntas × 50 nebulones c/u",
+                        text = "5 preguntas × 50 nebulones",
                         fontSize = 14.sp,
                         color = Color.White.copy(alpha = 0.7f),
                         textAlign = TextAlign.Center
@@ -216,34 +179,8 @@ fun PlanetDetailScreen(
 
                     Spacer(modifier = Modifier.height(32.dp))
 
-                    // Botón para iniciar cuestionario (CAMBIADO)
-                    Button(
-                        onClick = { onStartQuiz() },  // 🆕 Navegar al quiz
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Transparent
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 32.dp)
-                            .height(56.dp)
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(
-                                        Color(0xFF4A90E2),
-                                        Color(0xFF7B68EE)
-                                    )
-                                ),
-                                shape = RoundedCornerShape(28.dp)
-                            ),
-                        shape = RoundedCornerShape(28.dp)
-                    ) {
-                        Text(
-                            text = "🚀 Iniciar Cuestionario",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
+                    // Botón para iniciar cuestionario mejorado
+                    StartQuizButton(onClick = onStartQuiz)
                 }
             }
         }
@@ -257,5 +194,205 @@ fun PlanetDetailScreen(
         ) {
             BackButton(onClick = onBackClick)
         }
+    }
+}
+
+@Composable
+private fun PlanetImageWithGlow(
+    imageUrl: String,
+    planetName: String
+) {
+    // Animación del glow
+    val infiniteTransition = rememberInfiniteTransition(label = "planet_glow")
+    val glowScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glow_scale"
+    )
+
+    // Animación del borde
+    val offset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 300f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "border_shine"
+    )
+
+    val shinyBorder = Brush.linearGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.9f),
+            Color.Transparent,
+            Color.White.copy(alpha = 0.9f)
+        ),
+        start = androidx.compose.ui.geometry.Offset(offset, 0f),
+        end = androidx.compose.ui.geometry.Offset(offset + 200f, 200f)
+    )
+
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier.size(220.dp)
+    ) {
+        // Efecto glow
+        Box(
+            modifier = Modifier
+                .size(200.dp)
+                .scale(glowScale)
+                .clip(CircleShape)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFF6C63FF).copy(alpha = 0.4f),
+                            Color.Transparent
+                        )
+                    )
+                )
+                .blur(25.dp)
+        )
+
+        // Imagen del planeta con borde animado
+        Box(
+            modifier = Modifier
+                .size(200.dp)
+                .border(
+                    width = 3.dp,
+                    brush = shinyBorder,
+                    shape = CircleShape
+                )
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.1f))
+        ) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = planetName,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
+    }
+}
+
+@Composable
+private fun RewardBoxAnimated() {
+    // Animación del borde dorado
+    val infiniteTransition = rememberInfiniteTransition(label = "reward_shine")
+    val offset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 300f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "gold_shine"
+    )
+
+    val goldenBorder = Brush.linearGradient(
+        colors = listOf(
+            Color(0xFFFFD700).copy(alpha = 0.9f),
+            Color.Transparent,
+            Color(0xFFFFD700).copy(alpha = 0.9f)
+        ),
+        start = androidx.compose.ui.geometry.Offset(offset, 0f),
+        end = androidx.compose.ui.geometry.Offset(offset + 200f, 200f)
+    )
+
+    Box(
+        modifier = Modifier
+            .border(
+                width = 2.dp,
+                brush = goldenBorder,
+                shape = RoundedCornerShape(16.dp)
+            )
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(
+                        Color(0xFF4CAF50).copy(alpha = 0.8f),
+                        Color(0xFF8BC34A).copy(alpha = 0.8f)
+                    )
+                )
+            )
+            .padding(horizontal = 24.dp, vertical = 16.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "🏆 Recompensa total:",
+                fontSize = 18.sp,
+                color = Color.White,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "250 Nebulones 🪙",
+                fontSize = 20.sp,
+                color = Color(0xFFFFD700),
+                fontWeight = FontWeight.ExtraBold
+            )
+        }
+    }
+}
+
+@Composable
+private fun StartQuizButton(onClick: () -> Unit) {
+    // Animación del borde
+    val infiniteTransition = rememberInfiniteTransition(label = "button_shine")
+    val offset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 300f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "shine_offset"
+    )
+
+    val shinyBorder = Brush.linearGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.9f),
+            Color.Transparent,
+            Color.White.copy(alpha = 0.9f)
+        ),
+        start = androidx.compose.ui.geometry.Offset(offset, 0f),
+        end = androidx.compose.ui.geometry.Offset(offset + 300f, 300f)
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 32.dp)
+            .height(56.dp)
+            .border(
+                width = 3.dp,
+                brush = shinyBorder,
+                shape = RoundedCornerShape(35.dp)
+            )
+            .clip(RoundedCornerShape(35.dp))
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        // Imagen de fondo
+        Image(
+            painter = painterResource(R.drawable.botones_inicio_registro),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+
+        // Texto del botón
+        Text(
+            text = "Iniciar Cuestionario",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
     }
 }
