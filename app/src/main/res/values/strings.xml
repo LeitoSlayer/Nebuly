@@ -20,6 +20,7 @@
     <string name="store_coin_icon">💰</string>
     <string name="store_check_icon">✓</string>
 
+
     <!-- Learning strings -->
     <string name="learning_route_title">Ruta de aprendizaje</string>
     <string name="learning_loading">Cargando…</string>

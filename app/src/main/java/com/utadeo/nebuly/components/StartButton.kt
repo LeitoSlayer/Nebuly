@@ -1,9 +1,9 @@
 package com.utadeo.nebuly.components
 
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -11,7 +11,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -31,13 +30,6 @@ fun StartButton(
     isLoading: Boolean = false
 ) {
     val aoboshiOne = FontFamily(Font(R.font.aoboshi_one_regular, FontWeight.Normal))
-
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "button_scale"
-    )
 
     // Animación del brillo
     val infiniteTransition = rememberInfiniteTransition(label = "shine")
@@ -62,51 +54,36 @@ fun StartButton(
         end = androidx.compose.ui.geometry.Offset(offset + 200f, 200f)
     )
 
-    Button(
-        onClick = {
-            isPressed = true
-            onClick()
-        },
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
-            .scale(scale)
-            //  Borde blanco brillante animado
+            .height(56.dp)
             .border(
-                BorderStroke(3.dp, shinyBorder),
+                width = 3.dp,
+                brush = shinyBorder,
                 shape = RoundedCornerShape(35.dp)
             )
-            .clip(RoundedCornerShape(35.dp)),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color.Transparent
-        ),
-        shape = RoundedCornerShape(35.dp)
+            .clip(RoundedCornerShape(35.dp))
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(35.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            // Imagen de fondo
-            Image(
-                painter = painterResource(R.drawable.botones_inicio_registro),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .matchParentSize()
-                    .clip(RoundedCornerShape(35.dp)),
-                alpha = if (isLoading) 0.5f else 1f
-            )
+        // Imagen de fondo
+        Image(
+            painter = painterResource(R.drawable.botones_inicio_registro),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+            alpha = if (isLoading) 0.5f else 1f
+        )
 
-            // Texto del botón
-            Text(
-                text = text,
-                fontSize = 25.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = aoboshiOne,
-                color = Color.White
-            )
-        }
+        // Texto del botón
+        Text(
+            text = text,
+            fontSize = 25.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = aoboshiOne,
+            color = Color.White
+        )
     }
 }

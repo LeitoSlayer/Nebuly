@@ -160,7 +160,7 @@ private fun LevelCard(
                 .clip(CircleShape)
                 .background(
                     if (level.isLocked) Color(0xFF2C2C2C).copy(alpha = 0.8f)
-                    else Color(0xFF1A237E).copy(alpha = 0.3f)
+                    else Color(0x37FFFFFF).copy(alpha = 0.3f)
                 )
         ) {
             AsyncImage(

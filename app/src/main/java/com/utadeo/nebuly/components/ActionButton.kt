@@ -1,9 +1,9 @@
 package com.utadeo.nebuly.components
 
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -31,7 +31,7 @@ fun ActionButton(
 ) {
     val aoboshiOne = FontFamily(Font(R.font.aoboshi_one_regular, FontWeight.Normal))
 
-    //  Animación del brillo en el borde
+    // Animación del brillo en el borde
     val infiniteTransition = rememberInfiniteTransition(label = "shine")
     val offset by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -43,7 +43,7 @@ fun ActionButton(
         label = "shine_offset"
     )
 
-    //  Gradiente blanco brillante animado
+    // Gradiente blanco brillante animado
     val shinyBorder = Brush.linearGradient(
         colors = listOf(
             Color.White.copy(alpha = 0.9f),
@@ -54,55 +54,44 @@ fun ActionButton(
         end = androidx.compose.ui.geometry.Offset(offset + 300f, 300f)
     )
 
-    Button(
-        onClick = { if (!isLoading) onClick() },
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .height(60.dp)
-            .padding(vertical = 4.dp)
-            //  Borde blanco brillante
-            .border(BorderStroke(3.dp, shinyBorder), RoundedCornerShape(35.dp))
-            .clip(RoundedCornerShape(35.dp)),
-        enabled = !isLoading,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color.Transparent,
-            disabledContainerColor = Color.Transparent
-        ),
-        shape = RoundedCornerShape(35.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(35.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            // Imagen de fondo
-            Image(
-                painter = painterResource(R.drawable.botones_inicio_registro),
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(35.dp)),
-                contentScale = ContentScale.Crop,
-                alpha = if (isLoading) 0.5f else 1f
+            .border(
+                width = 3.dp,
+                brush = shinyBorder,
+                shape = RoundedCornerShape(35.dp)
             )
+            .clip(RoundedCornerShape(35.dp))
+            .clickable(enabled = !isLoading) { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        // Imagen de fondo
+        Image(
+            painter = painterResource(R.drawable.botones_inicio_registro),
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxSize(),
+            contentScale = ContentScale.Crop,
+            alpha = if (isLoading) 0.5f else 1f
+        )
 
-            // Contenido dinámico
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(28.dp),
-                    color = Color.White,
-                    strokeWidth = 3.dp
-                )
-            } else {
-                Text(
-                    text = text,
-                    fontSize = 25.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = aoboshiOne,
-                    color = Color.White
-                )
-            }
+        // Contenido dinámico
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(28.dp),
+                color = Color.White,
+                strokeWidth = 3.dp
+            )
+        } else {
+            Text(
+                text = text,
+                fontSize = 25.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = aoboshiOne,
+                color = Color.White
+            )
         }
     }
 }
