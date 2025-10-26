@@ -357,7 +357,7 @@ fun AvatarCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Image(
-                        painter = painterResource(R.drawable.moneda_diseno),  // Nota: usa guión bajo, no punto
+                        painter = painterResource(R.drawable.moneda_diseno),
                         contentDescription = "Moneda",
                         modifier = Modifier.size(28.dp)
                     )

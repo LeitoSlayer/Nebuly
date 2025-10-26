@@ -144,28 +144,11 @@ fun PlanetDetailScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Descripción
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 32.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(Color(0xFF1A237E).copy(alpha = 0.8f))
-                            .padding(20.dp)
-                    ) {
-                        Text(
-                            text = planet.description,
-                            fontSize = 16.sp,
-                            color = Color.White,
-                            textAlign = TextAlign.Justify,
-                            lineHeight = 24.sp
-                        )
-                    }
+                    // Descripción con imagen de fondo
+                    DescriptionBox(description = planet.description)
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    // Recompensa con borde dorado animado
-                    RewardBoxAnimated()
 
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -194,6 +177,72 @@ fun PlanetDetailScreen(
         ) {
             BackButton(onClick = onBackClick)
         }
+    }
+}
+
+@Composable
+private fun DescriptionBox(description: String) {
+    // Animación del borde
+    val infiniteTransition = rememberInfiniteTransition(label = "desc_shine")
+    val offset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 300f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "shine_offset"
+    )
+
+    val shinyBorder = Brush.linearGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.6f),
+            Color.Transparent,
+            Color.White.copy(alpha = 0.6f)
+        ),
+        start = androidx.compose.ui.geometry.Offset(offset, 0f),
+        end = androidx.compose.ui.geometry.Offset(offset + 300f, 300f)
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 32.dp)
+            .border(
+                width = 2.dp,
+                brush = shinyBorder,
+                shape = RoundedCornerShape(20.dp)
+            )
+            .clip(RoundedCornerShape(20.dp))
+    ) {
+        // Imagen de fondo
+        Image(
+            painter = painterResource(R.drawable.fondo_presentacion_planetas),
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxWidth()
+                .matchParentSize(),
+            contentScale = ContentScale.Crop,
+            alpha = 0.9f
+        )
+
+        // Capa semi-transparente para mejorar legibilidad
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(Color.Black.copy(alpha = 0.3f))
+        )
+
+        // Texto
+        Text(
+            text = description,
+            fontSize = 16.sp,
+            color = Color.White,
+            textAlign = TextAlign.Justify,
+            lineHeight = 24.sp,
+            modifier = Modifier.padding(20.dp),
+            fontWeight = FontWeight.Medium
+        )
     }
 }
 
@@ -278,68 +327,6 @@ private fun PlanetImageWithGlow(
     }
 }
 
-@Composable
-private fun RewardBoxAnimated() {
-    // Animación del borde dorado
-    val infiniteTransition = rememberInfiniteTransition(label = "reward_shine")
-    val offset by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 300f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2500, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "gold_shine"
-    )
-
-    val goldenBorder = Brush.linearGradient(
-        colors = listOf(
-            Color(0xFFFFD700).copy(alpha = 0.9f),
-            Color.Transparent,
-            Color(0xFFFFD700).copy(alpha = 0.9f)
-        ),
-        start = androidx.compose.ui.geometry.Offset(offset, 0f),
-        end = androidx.compose.ui.geometry.Offset(offset + 200f, 200f)
-    )
-
-    Box(
-        modifier = Modifier
-            .border(
-                width = 2.dp,
-                brush = goldenBorder,
-                shape = RoundedCornerShape(16.dp)
-            )
-            .clip(RoundedCornerShape(16.dp))
-            .background(
-                brush = Brush.horizontalGradient(
-                    colors = listOf(
-                        Color(0xFF4CAF50).copy(alpha = 0.8f),
-                        Color(0xFF8BC34A).copy(alpha = 0.8f)
-                    )
-                )
-            )
-            .padding(horizontal = 24.dp, vertical = 16.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "🏆 Recompensa total:",
-                fontSize = 18.sp,
-                color = Color.White,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "250 Nebulones 🪙",
-                fontSize = 20.sp,
-                color = Color(0xFFFFD700),
-                fontWeight = FontWeight.ExtraBold
-            )
-        }
-    }
-}
 
 @Composable
 private fun StartQuizButton(onClick: () -> Unit) {

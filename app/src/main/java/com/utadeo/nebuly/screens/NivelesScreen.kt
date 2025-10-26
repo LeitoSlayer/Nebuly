@@ -72,16 +72,30 @@ fun NivelesScreen(
         )
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 80.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier.fillMaxSize()
         ) {
-            // Título
-            TitleHeader(text = moduleName)
+            // Header con BackButton y Título alineados
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 20.dp, start = 20.dp, end = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Start
+            ) {
+                // BackButton
+                BackButton(onClick = onBackClick)
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // TitleHeader ocupa el resto del espacio
+                Box(modifier = Modifier.weight(1f)) {
+                    TitleHeader(text = moduleName)
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Contenido principal
             when {
                 isLoading -> {
                     Box(
@@ -127,16 +141,6 @@ fun NivelesScreen(
                     }
                 }
             }
-        }
-
-        // Botón de retroceso
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 20.dp, start = 20.dp),
-            contentAlignment = Alignment.TopStart
-        ) {
-            BackButton(onClick = onBackClick)
         }
     }
 }
