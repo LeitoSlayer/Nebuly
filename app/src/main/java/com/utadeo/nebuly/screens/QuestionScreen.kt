@@ -27,11 +27,15 @@ import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.FirebaseAuth
 import com.utadeo.nebuly.R
 import com.utadeo.nebuly.components.BackButton
+import com.utadeo.nebuly.components.AchievementUnlockedNotification
 import com.utadeo.nebuly.data.models.Question
+import com.utadeo.nebuly.data.models.Achievement
 import com.utadeo.nebuly.data.repository.LearningRepository
 import com.utadeo.nebuly.data.repository.QuestionRepository
+import com.utadeo.nebuly.data.repository.AchievementsRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import android.util.Log
 
 @Composable
 fun QuestionScreen(
@@ -45,6 +49,7 @@ fun QuestionScreen(
 ) {
     val questionRepository = remember { QuestionRepository() }
     val learningRepository = remember { LearningRepository() }
+    val achievementsRepository = remember { AchievementsRepository() }
     val scope = rememberCoroutineScope()
 
     var questions by remember { mutableStateOf<List<Question>>(emptyList()) }
@@ -59,12 +64,15 @@ fun QuestionScreen(
     var showFeedback by remember { mutableStateOf(false) }
     var isProcessing by remember { mutableStateOf(false) }
 
-    // 🆕 Variables para validar si ya se ganaron las monedas
+    // Variables para validar si ya se ganaron las monedas
     var isFirstTime by remember { mutableStateOf(true) }
     var quizCompleted by remember { mutableStateOf(false) }
-    var showCompletionMessage by remember { mutableStateOf(false) }
 
-    // 🆕 Verificar si el siguiente nivel ya está desbloqueado (significa que ya completó este)
+    // 🆕 Variables para la notificación de logro
+    var showAchievementNotification by remember { mutableStateOf(false) }
+    var unlockedAchievement by remember { mutableStateOf<Achievement?>(null) }
+
+    // Verificar si el siguiente nivel ya está desbloqueado (significa que ya completó este)
     LaunchedEffect(levelId) {
         scope.launch {
             auth.currentUser?.uid?.let { userId ->
@@ -73,7 +81,7 @@ fun QuestionScreen(
                         isFirstTime = !isUnlocked
                     },
                     onFailure = {
-                        isFirstTime = true // En caso de error, asumimos primera vez
+                        isFirstTime = true
                     }
                 )
             }
@@ -140,13 +148,12 @@ fun QuestionScreen(
                 }
             }
             quizCompleted -> {
-                // 🆕 Pantalla de resultado final
                 QuizCompletionScreen(
                     correctAnswers = correctAnswers,
                     totalQuestions = questions.size,
                     coinsEarned = if (isFirstTime) totalCoinsEarned else 0,
                     isFirstTime = isFirstTime,
-                    passed = correctAnswers == questions.size, // 🆕 Debe responder todas correctamente
+                    passed = correctAnswers == questions.size,
                     onContinue = onQuizComplete
                 )
             }
@@ -204,10 +211,8 @@ fun QuestionScreen(
                                     isAnswerCorrect = index == currentQuestion.correctAnswer
                                     showFeedback = true
 
-                                    // 🆕 Contar respuestas correctas
                                     if (isAnswerCorrect == true) {
                                         correctAnswers++
-                                        // Solo sumar monedas si es primera vez
                                         if (isFirstTime) {
                                             totalCoinsEarned += currentQuestion.reward
                                         }
@@ -224,10 +229,10 @@ fun QuestionScreen(
                                             isAnswerCorrect = null
                                             showFeedback = false
                                         } else {
-                                            // 🆕 Quiz completado - mostrar resultado
+                                            // Quiz completado
                                             quizCompleted = true
 
-                                            // 🆕 Solo actualizar si es primera vez Y respondió todas correctamente
+                                            // Solo actualizar si es primera vez Y respondió todas correctamente
                                             if (isFirstTime && correctAnswers == questions.size) {
                                                 isProcessing = true
                                                 auth.currentUser?.uid?.let { userId ->
@@ -238,10 +243,22 @@ fun QuestionScreen(
                                                     ).fold(
                                                         onSuccess = {
                                                             scope.launch {
+                                                                // Desbloquear siguiente nivel
                                                                 unlockNextLevel(
                                                                     userId = userId,
                                                                     currentLevelId = levelId,
                                                                     learningRepository = learningRepository
+                                                                )
+
+                                                                // 🆕 Desbloquear logro y mostrar notificación
+                                                                unlockAchievementForLevel(
+                                                                    userId = userId,
+                                                                    levelId = levelId,
+                                                                    achievementsRepository = achievementsRepository,
+                                                                    onAchievementUnlocked = { achievement ->
+                                                                        unlockedAchievement = achievement
+                                                                        showAchievementNotification = true
+                                                                    }
                                                                 )
                                                             }
                                                         },
@@ -287,10 +304,20 @@ fun QuestionScreen(
         ) {
             BackButton(onClick = onBackClick)
         }
+
+        // 🆕 Notificación de logro desbloqueado
+        if (showAchievementNotification && unlockedAchievement != null) {
+            AchievementUnlockedNotification(
+                achievement = unlockedAchievement!!,
+                onDismiss = {
+                    showAchievementNotification = false
+                    unlockedAchievement = null
+                }
+            )
+        }
     }
 }
 
-// 🆕 Pantalla de resultado final
 @Composable
 private fun QuizCompletionScreen(
     correctAnswers: Int,
@@ -425,9 +452,9 @@ private fun PlanetProgressIndicator(
     ) {
         repeat(totalQuestions) { index ->
             val planet = when {
-                index < currentQuestion - 1 -> "🟢" // Completado
-                index == currentQuestion - 1 -> "🪐" // Actual
-                else -> "⚪" // Pendiente
+                index < currentQuestion - 1 -> "🟢"
+                index == currentQuestion - 1 -> "🪐"
+                else -> "⚪"
             }
 
             Text(
@@ -591,7 +618,7 @@ private fun FeedbackCard(
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
-                text = if (isCorrect) "¡Correcto!" else "Incorrecto ",
+                text = if (isCorrect) "¡Correcto!" else "Incorrecto",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
@@ -650,4 +677,62 @@ private suspend fun unlockNextLevel(
         val nextLevelId = planetOrder[currentIndex + 1]
         learningRepository.unlockLevel(userId, nextLevelId)
     }
+}
+
+// 🆕 Desbloquea el logro asociado al nivel completado y muestra notificación
+private suspend fun unlockAchievementForLevel(
+    userId: String,
+    levelId: String,
+    achievementsRepository: AchievementsRepository,
+    onAchievementUnlocked: (Achievement) -> Unit
+) {
+    // Desbloquear logro del nivel actual
+    achievementsRepository.getAchievementByLevel(levelId).fold(
+        onSuccess = { achievement ->
+            if (achievement != null) {
+                achievementsRepository.unlockAchievement(userId, achievement.id).fold(
+                    onSuccess = { wasUnlocked ->
+                        if (wasUnlocked) {
+                            Log.d("QuestionScreen", "🏆 Logro desbloqueado: ${achievement.name}")
+                            onAchievementUnlocked(achievement)
+                        }
+                    },
+                    onFailure = { error ->
+                        Log.e("QuestionScreen", "Error al desbloquear logro", error)
+                    }
+                )
+            }
+        },
+        onFailure = { error ->
+            Log.e("QuestionScreen", "Error al buscar logro", error)
+        }
+    )
+
+    // 🌌 Verificar si completó todos los niveles para desbloquear logro Sistema Solar
+    delay(500) // Pequeña pausa para que se vea la primera notificación
+
+    achievementsRepository.checkAndUnlockSolarSystemAchievement(userId).fold(
+        onSuccess = { wasUnlocked ->
+            if (wasUnlocked) {
+                Log.d("QuestionScreen", "🌌 ¡Logro Sistema Solar desbloqueado!")
+
+                // Obtener el logro y mostrar notificación
+                delay(3500) // Esperar a que termine la primera notificación
+
+                achievementsRepository.getSolarSystemAchievement().fold(
+                    onSuccess = { solarSystemAchievement ->
+                        if (solarSystemAchievement != null) {
+                            onAchievementUnlocked(solarSystemAchievement)
+                        }
+                    },
+                    onFailure = { error ->
+                        Log.e("QuestionScreen", "Error al obtener logro Sistema Solar", error)
+                    }
+                )
+            }
+        },
+        onFailure = { error ->
+            Log.e("QuestionScreen", "Error al verificar logro Sistema Solar", error)
+        }
+    )
 }

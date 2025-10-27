@@ -21,7 +21,8 @@ fun MenuScreen(
     auth: FirebaseAuth,
     onBackClick: () -> Unit,
     onStoreClick: () -> Unit = {},
-    onLearningClick: () -> Unit = {}, // 🆕 Callback para ruta de aprendizaje
+    onLearningClick: () -> Unit = {},
+    onAchievementsClick: () -> Unit = {}, // 🆕 Callback para logros
     onAvatarClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -53,11 +54,11 @@ fun MenuScreen(
                 onClick = onAvatarClick
             )
 
-            // 🆕 Tarjeta Aprender - Navega a ruta de aprendizaje
+            // Tarjeta Aprender - Navega a ruta de aprendizaje
             MenuCard(
                 imageRes = R.drawable.menu_aprender,
                 title = "Aprender",
-                onClick = onLearningClick // Navegar a ruta de aprendizaje
+                onClick = onLearningClick
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -80,11 +81,11 @@ fun MenuScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Tarjeta Logros
+            // 🆕 Tarjeta Logros - Navega a pantalla de logros
             MenuCard(
                 imageRes = R.drawable.menu_logros,
                 title = "Logros",
-                onClick = { println("Click en Logros") }
+                onClick = onAchievementsClick
             )
 
             Spacer(modifier = Modifier.height(100.dp))

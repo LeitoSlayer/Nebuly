@@ -17,12 +17,13 @@ import com.utadeo.nebuly.screens.learning.RutaAprendizajeScreen
 import com.utadeo.nebuly.screens.learning.NivelesScreen
 import com.utadeo.nebuly.screens.learning.PlanetDetailScreen
 import com.utadeo.nebuly.screens.learning.QuestionScreen
+import com.utadeo.nebuly.screens.achievements.AchievementsScreen
 
 sealed class Screen {
     object Welcome : Screen()
     object Login : Screen()
     object Register : Screen()
-    data class AvatarSelection(val userId: String, val returnTo: Screen? = null) : Screen() // 🆕 returnTo
+    data class AvatarSelection(val userId: String, val returnTo: Screen? = null) : Screen()
     object Comienzo : Screen()
     object Menu : Screen()
     object Store : Screen()
@@ -41,12 +42,15 @@ sealed class Screen {
         val moduleId: String,
         val moduleName: String
     ) : Screen()
+
+    // 🆕 Pantalla de Logros
+    object Achievements : Screen()
 }
 
 @Composable
 fun AppNavigation(auth: FirebaseAuth) {
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Welcome) }
-    var previousScreen by remember { mutableStateOf<Screen?>(null) } // 🆕 Para recordar de dónde viene
+    var previousScreen by remember { mutableStateOf<Screen?>(null) }
 
     when (currentScreen) {
         is Screen.Welcome -> WelcomeScreen(
@@ -75,7 +79,6 @@ fun AppNavigation(auth: FirebaseAuth) {
             AvatarSelectionScreen(
                 userId = screen.userId,
                 onBackClick = {
-                    // 🆕 Si tiene returnTo, volver ahí, sino al registro
                     currentScreen = screen.returnTo ?: Screen.Register
                 }
             )
@@ -91,12 +94,13 @@ fun AppNavigation(auth: FirebaseAuth) {
             onBackClick = { currentScreen = Screen.Comienzo },
             onStoreClick = { currentScreen = Screen.Store },
             onLearningClick = { currentScreen = Screen.RutaAprendizaje },
-            onAvatarClick = { // 🆕 Callback para ir a selección de avatares
+            onAchievementsClick = { currentScreen = Screen.Achievements }, // 🆕
+            onAvatarClick = {
                 auth.currentUser?.uid?.let { userId ->
-                    previousScreen = currentScreen // Guardar pantalla actual
+                    previousScreen = currentScreen
                     currentScreen = Screen.AvatarSelection(
                         userId = userId,
-                        returnTo = Screen.RutaAprendizaje // 🆕 Para volver aquí
+                        returnTo = Screen.Menu
                     )
                 }
             }
@@ -132,12 +136,12 @@ fun AppNavigation(auth: FirebaseAuth) {
             onModuleClick = { module ->
                 currentScreen = Screen.Niveles(module.id, module.name)
             },
-            onAvatarClick = { // 🆕 Callback para ir a selección de avatares
+            onAvatarClick = {
                 auth.currentUser?.uid?.let { userId ->
-                    previousScreen = currentScreen // Guardar pantalla actual
+                    previousScreen = currentScreen
                     currentScreen = Screen.AvatarSelection(
                         userId = userId,
-                        returnTo = Screen.RutaAprendizaje // 🆕 Para volver aquí
+                        returnTo = Screen.RutaAprendizaje
                     )
                 }
             }
@@ -172,7 +176,7 @@ fun AppNavigation(auth: FirebaseAuth) {
                 onBackClick = {
                     currentScreen = Screen.Niveles(screen.moduleId, screen.moduleName)
                 },
-                onStartQuiz = {  // 🆕 Navegar al cuestionario
+                onStartQuiz = {
                     currentScreen = Screen.Question(
                         levelId = screen.levelId,
                         moduleId = screen.moduleId,
@@ -182,25 +186,31 @@ fun AppNavigation(auth: FirebaseAuth) {
             )
         }
 
-        // 🆕 Pantalla de Cuestionario
+        // Pantalla de Cuestionario
         is Screen.Question -> {
-            val screen = currentScreen as Screen.Question
-            QuestionScreen(
-                auth = auth,
-                levelId = screen.levelId,
-                moduleId = screen.moduleId,
-                moduleName = screen.moduleName,
-                onBackClick = {
-                    currentScreen = Screen.PlanetDetail(
-                        levelId = screen.levelId,
-                        moduleId = screen.moduleId,
-                        moduleName = screen.moduleName
-                    )
-                },
-                onQuizComplete = {
-                    currentScreen = Screen.Niveles(screen.moduleId, screen.moduleName)
-                }
-            )
-        }
+        val screen = currentScreen as Screen.Question
+        QuestionScreen(
+            auth = auth,
+            levelId = screen.levelId,
+            moduleId = screen.moduleId,
+            moduleName = screen.moduleName,
+            onBackClick = {
+                currentScreen = Screen.PlanetDetail(
+                    levelId = screen.levelId,
+                    moduleId = screen.moduleId,
+                    moduleName = screen.moduleName
+                )
+            },
+            onQuizComplete = {
+                currentScreen = Screen.Niveles(screen.moduleId, screen.moduleName)
+            }
+        )
+    }
+
+        // 🆕 Pantalla de Logros
+        is Screen.Achievements -> AchievementsScreen(
+            auth = auth,
+            onBackClick = { currentScreen = Screen.Menu }
+        )
     }
 }

@@ -32,4 +32,16 @@
     <string name="learning_quiz_button">❓</string>
     <string name="learning_no_modules">No hay módulos disponibles</string>
     <string name="learning_no_levels">No hay niveles disponibles</string>
+
+    <!-- Achievements strings -->
+    <string name="achievements_title">Logros</string>
+    <string name="achievements_unlocked_count">%1$d de %2$d desbloqueados</string>
+    <string name="achievements_loading">Cargando logros…</string>
+    <string name="achievements_error">Error al cargar logros</string>
+    <string name="achievements_no_achievements">No hay logros disponibles</string>
+    <string name="achievements_unlocked">Desbloqueado</string>
+    <string name="achievements_locked">Bloqueado</string>
+    <string name="achievements_new_unlocked">🏆 ¡Nuevo logro desbloqueado!</string>
+
+
 </resources>
