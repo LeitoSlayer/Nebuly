@@ -63,7 +63,7 @@ fun NivelesScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        // Fondo espacial
+
         Image(
             painter = painterResource(id = R.drawable.fondo_inicio_sesion),
             contentDescription = null,
@@ -87,7 +87,7 @@ fun NivelesScreen(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // TitleHeader ocupa el resto del espacio
+
                 Box(modifier = Modifier.weight(1f)) {
                     TitleHeader(text = moduleName)
                 }
