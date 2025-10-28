@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
@@ -15,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -24,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.utadeo.nebuly.R
 import com.utadeo.nebuly.components.BackButton
@@ -36,6 +39,17 @@ import com.utadeo.nebuly.data.repository.AchievementsRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import android.util.Log
+
+// IDs de recursos de planetas
+private val PLANET_IMAGES = listOf(
+    R.drawable.planeta_mini1,
+    R.drawable.planeta_mini2,
+    R.drawable.planeta_mini3,
+    R.drawable.planeta_mini4,
+    R.drawable.planeta_mini5
+)
+
+private val PLANET_NAMES = listOf("Mercurio", "Venus", "Tierra", "Marte", "Júpiter")
 
 @Composable
 fun QuestionScreen(
@@ -64,15 +78,16 @@ fun QuestionScreen(
     var showFeedback by remember { mutableStateOf(false) }
     var isProcessing by remember { mutableStateOf(false) }
 
-    // Variables para validar si ya se ganaron las monedas
+    // 🆕 Lista para trackear el estado de cada pregunta
+    var questionStates by remember { mutableStateOf<List<QuestionState>>(emptyList()) }
+
     var isFirstTime by remember { mutableStateOf(true) }
     var quizCompleted by remember { mutableStateOf(false) }
 
-    // 🆕 Variables para la notificación de logro
     var showAchievementNotification by remember { mutableStateOf(false) }
     var unlockedAchievement by remember { mutableStateOf<Achievement?>(null) }
 
-    // Verificar si el siguiente nivel ya está desbloqueado (significa que ya completó este)
+    // Verificar si el siguiente nivel ya está desbloqueado
     LaunchedEffect(levelId) {
         scope.launch {
             auth.currentUser?.uid?.let { userId ->
@@ -94,6 +109,8 @@ fun QuestionScreen(
             questionRepository.getQuestionsForLevel(levelId).fold(
                 onSuccess = {
                     questions = it
+                    // Inicializar estados de preguntas
+                    questionStates = List(it.size) { QuestionState.PENDING }
                     isLoading = false
                 },
                 onFailure = {
@@ -107,7 +124,7 @@ fun QuestionScreen(
     Box(modifier = modifier.fillMaxSize()) {
         // Fondo espacial
         Image(
-            painter = painterResource(id = R.drawable.fondo_inicio_sesion),
+            painter = painterResource(id = R.drawable.fondo_preguntas),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
@@ -132,8 +149,8 @@ fun QuestionScreen(
                         modifier = Modifier.padding(32.dp)
                     ) {
                         Text(
-                            text = "❌ Error",
-                            color = Color.White,
+                            text = "Error",
+                            color = Color(0xFFFF6B6B),
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -168,10 +185,11 @@ fun QuestionScreen(
                 ) {
                     Spacer(modifier = Modifier.height(80.dp))
 
-                    // Indicador de progreso con planetas
+                    // 🆕 Nuevo indicador de progreso con planetas
                     PlanetProgressIndicator(
-                        currentQuestion = currentQuestionIndex + 1,
                         totalQuestions = questions.size,
+                        currentQuestionIndex = currentQuestionIndex,
+                        questionStates = questionStates,
                         correctAnswers = correctAnswers
                     )
 
@@ -211,6 +229,15 @@ fun QuestionScreen(
                                     isAnswerCorrect = index == currentQuestion.correctAnswer
                                     showFeedback = true
 
+                                    // 🆕 Actualizar estado de la pregunta
+                                    val newStates = questionStates.toMutableList()
+                                    newStates[currentQuestionIndex] = if (isAnswerCorrect == true) {
+                                        QuestionState.CORRECT
+                                    } else {
+                                        QuestionState.INCORRECT
+                                    }
+                                    questionStates = newStates
+
                                     if (isAnswerCorrect == true) {
                                         correctAnswers++
                                         if (isFirstTime) {
@@ -223,16 +250,13 @@ fun QuestionScreen(
                                         delay(2000)
 
                                         if (currentQuestionIndex < questions.size - 1) {
-                                            // Siguiente pregunta
                                             currentQuestionIndex++
                                             selectedAnswer = null
                                             isAnswerCorrect = null
                                             showFeedback = false
                                         } else {
-                                            // Quiz completado
                                             quizCompleted = true
 
-                                            // Solo actualizar si es primera vez Y respondió todas correctamente
                                             if (isFirstTime && correctAnswers == questions.size) {
                                                 isProcessing = true
                                                 auth.currentUser?.uid?.let { userId ->
@@ -243,14 +267,12 @@ fun QuestionScreen(
                                                     ).fold(
                                                         onSuccess = {
                                                             scope.launch {
-                                                                // Desbloquear siguiente nivel
                                                                 unlockNextLevel(
                                                                     userId = userId,
                                                                     currentLevelId = levelId,
                                                                     learningRepository = learningRepository
                                                                 )
 
-                                                                // 🆕 Desbloquear logro y mostrar notificación
                                                                 unlockAchievementForLevel(
                                                                     userId = userId,
                                                                     levelId = levelId,
@@ -305,7 +327,7 @@ fun QuestionScreen(
             BackButton(onClick = onBackClick)
         }
 
-        // 🆕 Notificación de logro desbloqueado
+        // Notificación de logro desbloqueado
         if (showAchievementNotification && unlockedAchievement != null) {
             AchievementUnlockedNotification(
                 achievement = unlockedAchievement!!,
@@ -315,6 +337,181 @@ fun QuestionScreen(
                 }
             )
         }
+    }
+}
+
+// 🆕 Enum para estados de preguntas
+enum class QuestionState {
+    PENDING,
+    CORRECT,
+    INCORRECT
+}
+
+// 🆕 Nuevo componente de indicador de planetas
+@Composable
+private fun PlanetProgressIndicator(
+    totalQuestions: Int,
+    currentQuestionIndex: Int,
+    questionStates: List<QuestionState>,
+    correctAnswers: Int
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Fila de planetas
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        ) {
+            repeat(totalQuestions.coerceAtMost(5)) { index ->
+                PlanetIndicator(
+                    planetImageUrl = PLANET_IMAGES.getOrNull(index) ?: PLANET_IMAGES[0],
+                    planetName = PLANET_NAMES.getOrNull(index) ?: "Planeta ${index + 1}",
+                    state = questionStates.getOrNull(index) ?: QuestionState.PENDING,
+                    isCurrent = index == currentQuestionIndex,
+                    questionNumber = index + 1
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+
+    }
+}
+
+@Composable
+private fun PlanetIndicator(
+    planetImageUrl: Int,
+    planetName: String,
+    state: QuestionState,
+    isCurrent: Boolean,
+    questionNumber: Int
+) {
+    // Animación para el planeta actual
+    val infiniteTransition = rememberInfiniteTransition(label = "planet_anim")
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = if (isCurrent) 1.15f else 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale"
+    )
+
+    // Color del borde según el estado
+    val borderColor = when (state) {
+        QuestionState.CORRECT -> Color(0xFF4CAF50)
+        QuestionState.INCORRECT -> Color(0xFFFF6B6B)
+        QuestionState.PENDING -> if (isCurrent) Color.White else Color.White.copy(alpha = 0.3f)
+    }
+
+    val borderWidth = when {
+        isCurrent -> 3.dp
+        state != QuestionState.PENDING -> 2.dp
+        else -> 1.dp
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.width(56.dp)  // Cambia a width
+    ) {
+        // Box externo para el scale
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .scale(if (isCurrent) scale else 1f),  // Scale solo aquí
+            contentAlignment = Alignment.Center
+        ) {
+            // Box interno con el contenido
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .border(
+                        width = borderWidth,
+                        color = borderColor,
+                        shape = CircleShape
+                    )
+                    .clip(CircleShape)
+                    .background(
+                        when (state) {
+                            QuestionState.PENDING -> Color.Black.copy(alpha = 0.5f)
+                            else -> Color.Black.copy(alpha = 0.3f)
+                        }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                // Imagen del planeta
+                Image(
+                    painter = painterResource(id = planetImageUrl),
+                    contentDescription = planetName,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .graphicsLayer {
+                            alpha = when (state) {
+                                QuestionState.PENDING -> if (isCurrent) 1f else 0.4f
+                                else -> 1f
+                            }
+                        },
+                    contentScale = ContentScale.Fit
+                )
+
+                // Overlay para estados
+                when (state) {
+                    QuestionState.CORRECT -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color(0xFF4CAF50).copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "✓",
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                    QuestionState.INCORRECT -> {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color(0xFFFF6B6B).copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "✗",
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                    QuestionState.PENDING -> {
+                        if (!isCurrent) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(Color.Black.copy(alpha = 0.6f))
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Número de pregunta
+        Text(
+            text = "$questionNumber",
+            fontSize = 12.sp,
+            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+            color = if (isCurrent) Color.White else Color.White.copy(alpha = 0.6f)
+        )
     }
 }
 
@@ -330,7 +527,7 @@ private fun QuizCompletionScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.7f)),
+            .background(Color.Black.copy(alpha = 0.8f)),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -340,9 +537,9 @@ private fun QuizCompletionScreen(
                 .background(
                     brush = Brush.verticalGradient(
                         colors = if (passed) {
-                            listOf(Color(0xFF4CAF50), Color(0xFF8BC34A))
+                            listOf(Color(0xFF2E7D32), Color(0xFF4CAF50))
                         } else {
-                            listOf(Color(0xFFDC143C), Color(0xFFFF6B6B))
+                            listOf(Color(0xFFB71C1C), Color(0xFFE53935))
                         }
                     )
                 )
@@ -350,7 +547,7 @@ private fun QuizCompletionScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = if (passed) "🎉 ¡Felicidades!" else "😢 Intenta de nuevo",
+                text = if (passed) "¡Felicidades!" else "Intenta de nuevo",
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
@@ -377,12 +574,12 @@ private fun QuizCompletionScreen(
             if (passed) {
                 if (isFirstTime) {
                     Text(
-                        text = "Ganaste:",
+                        text = "Nebulones ganados:",
                         fontSize = 18.sp,
                         color = Color.White.copy(alpha = 0.9f)
                     )
                     Text(
-                        text = "+$coinsEarned 🪙",
+                        text = "+$coinsEarned",
                         fontSize = 36.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFFFFD700)
@@ -441,54 +638,6 @@ private fun QuizCompletionScreen(
 }
 
 @Composable
-private fun PlanetProgressIndicator(
-    currentQuestion: Int,
-    totalQuestions: Int,
-    correctAnswers: Int
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        repeat(totalQuestions) { index ->
-            val planet = when {
-                index < currentQuestion - 1 -> "🟢"
-                index == currentQuestion - 1 -> "🪐"
-                else -> "⚪"
-            }
-
-            Text(
-                text = planet,
-                fontSize = 24.sp,
-                modifier = Modifier
-                    .padding(4.dp)
-                    .then(
-                        if (index == currentQuestion - 1) {
-                            Modifier.animateEnhancedScale()
-                        } else Modifier
-                    )
-            )
-        }
-    }
-
-    Spacer(modifier = Modifier.width(8.dp))
-
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = "$currentQuestion/$totalQuestions",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
-        Text(
-            text = "✅ $correctAnswers",
-            fontSize = 14.sp,
-            color = Color(0xFF4CAF50)
-        )
-    }
-}
-
-@Composable
 private fun QuestionCard(question: Question) {
     Box(
         modifier = Modifier
@@ -537,21 +686,21 @@ private fun AnswerOption(
 ) {
     val backgroundColor = when {
         isCorrect == true -> Color(0xFF4CAF50).copy(alpha = 0.9f)
-        isWrong -> Color(0xFFDC143C).copy(alpha = 0.9f)
+        isWrong -> Color(0xFFFF6B6B).copy(alpha = 0.9f)
         isSelected -> Color(0xFF7B68EE).copy(alpha = 0.8f)
         else -> Color(0xFF2C2C2C).copy(alpha = 0.8f)
     }
 
     val borderColor = when {
         isCorrect == true -> Color(0xFF4CAF50)
-        isWrong -> Color(0xFFDC143C)
+        isWrong -> Color(0xFFFF6B6B)
         isSelected -> Color(0xFF7B68EE)
         else -> Color.White.copy(alpha = 0.3f)
     }
 
     val icon = when {
-        isCorrect == true -> "✅"
-        isWrong -> "❌"
+        isCorrect == true -> "✓"
+        isWrong -> "✗"
         else -> ""
     }
 
@@ -572,7 +721,7 @@ private fun AnswerOption(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "${'a' + index})",
+                text = "${'A' + index})",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
@@ -589,7 +738,9 @@ private fun AnswerOption(
             if (icon.isNotEmpty()) {
                 Text(
                     text = icon,
-                    fontSize = 24.sp
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
                 )
             }
         }
@@ -608,7 +759,7 @@ private fun FeedbackCard(
             .clip(RoundedCornerShape(16.dp))
             .background(
                 if (isCorrect) Color(0xFF4CAF50).copy(alpha = 0.9f)
-                else Color(0xFFDC143C).copy(alpha = 0.9f)
+                else Color(0xFFFF6B6B).copy(alpha = 0.9f)
             )
             .padding(16.dp),
         contentAlignment = Alignment.Center
@@ -627,7 +778,7 @@ private fun FeedbackCard(
             if (isCorrect && isFirstTime && coinsEarned > 0) {
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "+$coinsEarned 🪙",
+                    text = "+$coinsEarned",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFFFFD700)
@@ -635,24 +786,6 @@ private fun FeedbackCard(
             }
         }
     }
-}
-
-@Composable
-private fun Modifier.animateEnhancedScale(): Modifier {
-    val infiniteTransition = rememberInfiniteTransition(label = "scale")
-    val scale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.2f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "scale"
-    )
-    return this.then(Modifier.graphicsLayer {
-        scaleX = scale
-        scaleY = scale
-    })
 }
 
 private suspend fun unlockNextLevel(
@@ -679,21 +812,19 @@ private suspend fun unlockNextLevel(
     }
 }
 
-// 🆕 Desbloquea el logro asociado al nivel completado y muestra notificación
 private suspend fun unlockAchievementForLevel(
     userId: String,
     levelId: String,
     achievementsRepository: AchievementsRepository,
     onAchievementUnlocked: (Achievement) -> Unit
 ) {
-    // Desbloquear logro del nivel actual
     achievementsRepository.getAchievementByLevel(levelId).fold(
         onSuccess = { achievement ->
             if (achievement != null) {
                 achievementsRepository.unlockAchievement(userId, achievement.id).fold(
                     onSuccess = { wasUnlocked ->
                         if (wasUnlocked) {
-                            Log.d("QuestionScreen", "🏆 Logro desbloqueado: ${achievement.name}")
+                            Log.d("QuestionScreen", "Logro desbloqueado: ${achievement.name}")
                             onAchievementUnlocked(achievement)
                         }
                     },
@@ -708,13 +839,12 @@ private suspend fun unlockAchievementForLevel(
         }
     )
 
-    // 🌌 Verificar si completó todos los niveles para desbloquear logro Sistema Solar
-    delay(500) // Pequeña pausa para que se vea la primera notificación
+    delay(500)
 
     achievementsRepository.checkAndUnlockSolarSystemAchievement(userId).fold(
         onSuccess = { wasUnlocked ->
             if (wasUnlocked) {
-                Log.d("QuestionScreen", "🌌 ¡Logro Sistema Solar desbloqueado!")
+                Log.d("QuestionScreen", "¡Logro Sistema Solar desbloqueado!")
 
                 // Obtener el logro y mostrar notificación
                 delay(3500) // Esperar a que termine la primera notificación

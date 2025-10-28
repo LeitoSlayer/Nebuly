@@ -49,7 +49,7 @@ fun BackButton(
 
     Box(
         modifier = modifier
-            .size(65.dp)
+            .size(42.dp)
             .border(
                 width = 2.dp,
                 brush = shinyBorder,
@@ -62,7 +62,7 @@ fun BackButton(
         Image(
             painter = painterResource(R.drawable.boton_volver),
             contentDescription = "Volver",
-            modifier = Modifier.size(65.dp),
+            modifier = Modifier.size(62.dp),
             contentScale = ContentScale.Fit
         )
     }
