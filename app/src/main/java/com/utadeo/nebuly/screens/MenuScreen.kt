@@ -22,7 +22,8 @@ fun MenuScreen(
     onBackClick: () -> Unit,
     onStoreClick: () -> Unit = {},
     onLearningClick: () -> Unit = {},
-    onAchievementsClick: () -> Unit = {}, // 🆕 Callback para logros
+    onAchievementsClick: () -> Unit = {},
+    onInvestigarClick: () -> Unit = {}, // 🆕 Callback para investigar (visor 3D)
     onAvatarClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -63,11 +64,11 @@ fun MenuScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Tarjeta Investigar
+            // 🆕 Tarjeta Investigar - Navega al visor 3D
             MenuCard(
                 imageRes = R.drawable.menu_investigar,
                 title = "Investigar",
-                onClick = { println("Click en Investigar") }
+                onClick = onInvestigarClick
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -81,7 +82,7 @@ fun MenuScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 🆕 Tarjeta Logros - Navega a pantalla de logros
+            // Tarjeta Logros - Navega a pantalla de logros
             MenuCard(
                 imageRes = R.drawable.menu_logros,
                 title = "Logros",

@@ -35,6 +35,14 @@
             android:configChanges="orientation|screenSize"
             android:theme="@style/Theme.Nebuly" />
 
+        <!-- 🆕 Activity del Visor 3D -->
+        <activity
+            android:name=".screens.viewer.ModelViewerActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.Nebuly" />
+
     </application>
 
 </manifest>
