@@ -1,10 +1,12 @@
+// 📁 Ubicación: app/src/main/kotlin+java/com/utadeo/nebuly/navigation/AppNavigation.kt
+
 package com.utadeo.nebuly.navigation
 
+import android.content.Intent
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
 import com.google.firebase.auth.FirebaseAuth
 import com.utadeo.nebuly.data.models.Avatar
-import com.utadeo.nebuly.data.models.LearningModule
-import com.utadeo.nebuly.data.models.Level
 import com.utadeo.nebuly.screens.ComienzoScreen
 import com.utadeo.nebuly.screens.avatar.AvatarSelectionScreen
 import com.utadeo.nebuly.screens.LoginScreen
@@ -18,6 +20,7 @@ import com.utadeo.nebuly.screens.learning.NivelesScreen
 import com.utadeo.nebuly.screens.learning.PlanetDetailScreen
 import com.utadeo.nebuly.screens.learning.QuestionScreen
 import com.utadeo.nebuly.screens.achievements.AchievementsScreen
+import com.utadeo.nebuly.screens.viewer.ModelViewerActivity // 🆕
 
 sealed class Screen {
     object Welcome : Screen()
@@ -43,14 +46,18 @@ sealed class Screen {
         val moduleName: String
     ) : Screen()
 
-    // 🆕 Pantalla de Logros
+    // Pantalla de Logros
     object Achievements : Screen()
+
+    // 🆕 Pantalla del Visor 3D
+    object ModelViewer : Screen()
 }
 
 @Composable
 fun AppNavigation(auth: FirebaseAuth) {
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Welcome) }
     var previousScreen by remember { mutableStateOf<Screen?>(null) }
+    val context = LocalContext.current
 
     when (currentScreen) {
         is Screen.Welcome -> WelcomeScreen(
@@ -94,7 +101,12 @@ fun AppNavigation(auth: FirebaseAuth) {
             onBackClick = { currentScreen = Screen.Comienzo },
             onStoreClick = { currentScreen = Screen.Store },
             onLearningClick = { currentScreen = Screen.RutaAprendizaje },
-            onAchievementsClick = { currentScreen = Screen.Achievements }, // 🆕
+            onAchievementsClick = { currentScreen = Screen.Achievements },
+            onInvestigarClick = {
+                // 🆕 Abrir el visor 3D
+                val intent = Intent(context, ModelViewerActivity::class.java)
+                context.startActivity(intent)
+            },
             onAvatarClick = {
                 auth.currentUser?.uid?.let { userId ->
                     previousScreen = currentScreen
@@ -188,29 +200,38 @@ fun AppNavigation(auth: FirebaseAuth) {
 
         // Pantalla de Cuestionario
         is Screen.Question -> {
-        val screen = currentScreen as Screen.Question
-        QuestionScreen(
-            auth = auth,
-            levelId = screen.levelId,
-            moduleId = screen.moduleId,
-            moduleName = screen.moduleName,
-            onBackClick = {
-                currentScreen = Screen.PlanetDetail(
-                    levelId = screen.levelId,
-                    moduleId = screen.moduleId,
-                    moduleName = screen.moduleName
-                )
-            },
-            onQuizComplete = {
-                currentScreen = Screen.Niveles(screen.moduleId, screen.moduleName)
-            }
-        )
-    }
+            val screen = currentScreen as Screen.Question
+            QuestionScreen(
+                auth = auth,
+                levelId = screen.levelId,
+                moduleId = screen.moduleId,
+                moduleName = screen.moduleName,
+                onBackClick = {
+                    currentScreen = Screen.PlanetDetail(
+                        levelId = screen.levelId,
+                        moduleId = screen.moduleId,
+                        moduleName = screen.moduleName
+                    )
+                },
+                onQuizComplete = {
+                    currentScreen = Screen.Niveles(screen.moduleId, screen.moduleName)
+                }
+            )
+        }
 
-        // 🆕 Pantalla de Logros
+        // Pantalla de Logros
         is Screen.Achievements -> AchievementsScreen(
             auth = auth,
             onBackClick = { currentScreen = Screen.Menu }
         )
+
+        // 🆕 Pantalla del Visor 3D (caso simplificado)
+        is Screen.ModelViewer -> {
+            // Esta pantalla solo se usa como trigger para abrir la Activity
+            // El Intent ya se ejecutó en el MenuScreen, así que volvemos al menú
+            LaunchedEffect(Unit) {
+                currentScreen = Screen.Menu
+            }
+        }
     }
 }
