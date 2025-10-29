@@ -41,7 +41,6 @@ class AvatarViewModel(
 
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-            // Cargar usuario
             Log.d("AvatarViewModel", "Cargando datos del usuario...")
             val userResult = repository.getUser(userId)
 
@@ -57,7 +56,6 @@ class AvatarViewModel(
             val user = userResult.getOrNull()
             Log.d("AvatarViewModel", "Usuario cargado: ${user?.username}, Level: ${user?.level}")
 
-            // Cargar avatares
             Log.d("AvatarViewModel", "Cargando avatares...")
             val avatarsResult = repository.getAvatarsForUser(userId)
 

@@ -26,9 +26,6 @@ class AchievementsViewModel : ViewModel() {
 
     private val TAG = "AchievementsViewModel"
 
-    /**
-     * Carga todos los logros y los desbloqueados del usuario
-     */
     fun loadAchievements(userId: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -65,9 +62,6 @@ class AchievementsViewModel : ViewModel() {
         }
     }
 
-    /**
-     * Verifica si un logro está desbloqueado
-     */
     fun isAchievementUnlocked(achievementId: String): Boolean {
         return _unlockedAchievements.value.contains(achievementId)
     }

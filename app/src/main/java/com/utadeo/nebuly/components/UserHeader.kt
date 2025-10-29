@@ -206,7 +206,6 @@ fun UserHeader(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            // Imagen de moneda personalizada
                             Image(
                                 painter = painterResource(R.drawable.moneda_diseno),
                                 contentDescription = "Moneda",

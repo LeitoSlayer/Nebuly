@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.utadeo.nebuly.components.BackButton
 import com.utadeo.nebuly.data.models.PlanetData
 import com.utadeo.nebuly.data.models.PointOfInterest
 import com.utadeo.nebuly.data.models.repository.PlanetRepository
@@ -46,7 +47,8 @@ class ModelViewerActivity : ComponentActivity() {
                 ModelViewerScreen(
                     planetId = planetId,
                     cacheDir = cacheDir,
-                    filesDir = filesDir
+                    filesDir = filesDir,
+                    onBackClick = { finish() }
                 )
             }
         }
@@ -63,7 +65,8 @@ data class PuntoProyectado(
 fun ModelViewerScreen(
     planetId: String,
     cacheDir: File,
-    filesDir: File
+    filesDir: File,
+    onBackClick: () -> Unit
 ) {
     val repository = remember { PlanetRepository() }
     val scope = rememberCoroutineScope()
@@ -204,6 +207,20 @@ fun ModelViewerScreen(
             )
         }
 
+        // Botón de atrás
+        if (!isLoading && errorMessage == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                BackButton(
+                    onClick = onBackClick,
+                    modifier = Modifier.align(Alignment.TopStart)
+                )
+            }
+        }
+
         if (isLoading) {
             Box(
                 modifier = Modifier
@@ -250,6 +267,8 @@ fun ModelViewerScreen(
                         color = Color.White,
                         style = MaterialTheme.typography.bodySmall
                     )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    BackButton(onClick = onBackClick)
                 }
             }
         }
@@ -258,7 +277,7 @@ fun ModelViewerScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(top = 80.dp, start = 16.dp, end = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Card(

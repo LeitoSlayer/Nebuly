@@ -11,7 +11,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -36,7 +35,6 @@ fun ComienzoScreen(
         Font(R.font.stardos_stencil_bold, FontWeight.Bold)
     )
 
-    // Animación del astronauta flotando
     val infiniteTransition = rememberInfiniteTransition(label = "float_animation")
     val floatingOffset by infiniteTransition.animateFloat(
         initialValue = -15f,
@@ -48,7 +46,6 @@ fun ComienzoScreen(
         label = "floating"
     )
 
-    // Animación de rotación suave del astronauta
     val rotation by infiniteTransition.animateFloat(
         initialValue = -3f,
         targetValue = 3f,
@@ -62,7 +59,6 @@ fun ComienzoScreen(
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
-        // Imagen de fondo
         Image(
             painter = painterResource(R.drawable.fondo_inicio_sesion),
             contentDescription = "Fondo de comienzo",

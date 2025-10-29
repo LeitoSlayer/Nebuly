@@ -37,7 +37,6 @@ fun MenuCard(
             containerColor = Color.Transparent
         )
     ) {
-        // Imagen completa sin recortar
         Image(
             painter = painterResource(id = imageRes),
             contentDescription = title,

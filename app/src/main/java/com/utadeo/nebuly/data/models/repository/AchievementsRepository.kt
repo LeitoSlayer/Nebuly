@@ -13,9 +13,6 @@ class AchievementsRepository {
 
     private val TAG = "🔥ACHIEVEMENTS_DEBUG🔥"
 
-    /**
-     * Obtiene todos los logros ordenados
-     */
     suspend fun getAllAchievements(): Result<List<Achievement>> {
         return try {
             Log.e(TAG, "========================================")
@@ -65,9 +62,6 @@ class AchievementsRepository {
         }
     }
 
-    /**
-     * Obtiene los logros desbloqueados de un usuario
-     */
     suspend fun getUnlockedAchievements(userId: String): Result<List<String>> {
         return try {
             Log.e(TAG, "Obteniendo logros desbloqueados del usuario: $userId")
@@ -94,9 +88,6 @@ class AchievementsRepository {
         }
     }
 
-    /**
-     * Desbloquea un logro para un usuario
-     */
     suspend fun unlockAchievement(userId: String, achievementId: String): Result<Boolean> {
         return try {
             Log.e(TAG, "Desbloqueando logro: $achievementId para usuario: $userId")
@@ -111,7 +102,6 @@ class AchievementsRepository {
                 }
             }
 
-            // Agregar a la lista de logros desbloqueados
             usersCollection.document(userId)
                 .update("unlockedAchievements", FieldValue.arrayUnion(achievementId))
                 .await()
@@ -124,9 +114,6 @@ class AchievementsRepository {
         }
     }
 
-    /**
-     * Obtiene el logro asociado a un nivel
-     */
     suspend fun getAchievementByLevel(levelId: String): Result<Achievement?> {
         return try {
             Log.e(TAG, "Buscando logro para nivel: $levelId")
@@ -161,14 +148,10 @@ class AchievementsRepository {
         }
     }
 
-    /**
-     * Verifica si el usuario completó todos los niveles y desbloquea el logro especial
-     */
     suspend fun checkAndUnlockSolarSystemAchievement(userId: String): Result<Boolean> {
         return try {
             Log.e(TAG, "🌌 Verificando logro Sistema Solar para usuario: $userId")
 
-            // Lista de todos los niveles requeridos
             val allRequiredLevels = listOf(
                 "level_mercury",
                 "level_venus",
@@ -180,7 +163,6 @@ class AchievementsRepository {
                 "level_neptune"
             )
 
-            // Obtener niveles completados del usuario
             val userDoc = usersCollection.document(userId).get().await()
             if (!userDoc.exists()) {
                 return Result.failure(Exception("Usuario no encontrado"))
@@ -191,7 +173,6 @@ class AchievementsRepository {
 
             Log.e(TAG, "Niveles completados: ${completedLevels.size}/${allRequiredLevels.size}")
 
-            // Verificar si completó todos los niveles
             val completedAllLevels = allRequiredLevels.all { level ->
                 completedLevels.contains(level)
             }

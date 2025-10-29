@@ -6,11 +6,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/**
- * Sistema de dimensiones responsivas para Nebuly
- * Se adapta automáticamente según el tamaño de pantalla
- */
-
 // Categorías de tamaño de pantalla
 enum class ScreenSize {
     SMALL,   // < 360dp de ancho
@@ -44,12 +39,9 @@ fun getScreenWidth(): Dp {
     return configuration.screenWidthDp.dp
 }
 
-/**
- * Objeto con todas las dimensiones adaptativas de la app
- */
+
 object AppDimens {
 
-    // Espaciados generales
     @Composable
     fun paddingHorizontal(): Dp {
         return when (getScreenSize()) {
@@ -81,7 +73,7 @@ object AppDimens {
         }
     }
 
-    // Tamaños de componentes
+
     @Composable
     fun buttonHeight(): Dp {
         return when (getScreenSize()) {
@@ -131,7 +123,6 @@ object AppDimens {
         }
     }
 
-    // Espaciados entre elementos
     @Composable
     fun spacingSmall(): Dp = when (getScreenSize()) {
         ScreenSize.SMALL -> 8.dp
@@ -162,7 +153,6 @@ object AppDimens {
         }
     }
 
-    // Tamaños de texto (usados en algunos textos que no usan MaterialTheme)
     @Composable
     fun titleSize(): Float = when (getScreenSize()) {
         ScreenSize.SMALL -> 70f
@@ -177,22 +167,17 @@ object AppDimens {
         else -> 25f
     }
 
-    // Verificar si necesitamos scroll
     @Composable
     fun needsScroll(): Boolean {
         return getScreenHeight() < 700.dp
     }
 
-    // Altura mínima de contenido para scroll
     @Composable
     fun minContentHeight(): Dp {
         return getScreenHeight() - 100.dp // Restamos algo de espacio para padding
     }
 }
 
-/**
- * Extension function para dp a pixels
- */
 @Composable
 fun Dp.toPx(): Float {
     val density = LocalDensity.current
