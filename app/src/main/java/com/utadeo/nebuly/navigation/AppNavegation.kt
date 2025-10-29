@@ -28,7 +28,6 @@ sealed class Screen {
     object Store : Screen()
     data class AvatarDetail(val avatar: Avatar, val userCoins: Int) : Screen()
 
-    // Pantallas de aprendizaje
     object RutaAprendizaje : Screen()
     data class Niveles(val moduleId: String, val moduleName: String) : Screen()
     data class PlanetDetail(
@@ -42,10 +41,8 @@ sealed class Screen {
         val moduleName: String
     ) : Screen()
 
-    // Pantalla de Logros
     object Achievements : Screen()
 
-    // 🆕 Pantalla de Selección de Planetas
     object PlanetSelection : Screen()
 }
 
@@ -98,7 +95,6 @@ fun AppNavigation(auth: FirebaseAuth) {
             onLearningClick = { currentScreen = Screen.RutaAprendizaje },
             onAchievementsClick = { currentScreen = Screen.Achievements },
             onInvestigarClick = {
-                // 🆕 Navegar a la pantalla de selección de planetas
                 currentScreen = Screen.PlanetSelection
             },
             onAvatarClick = {
@@ -214,7 +210,6 @@ fun AppNavigation(auth: FirebaseAuth) {
             onBackClick = { currentScreen = Screen.Menu }
         )
 
-        // 🆕 Pantalla de Selección de Planetas
         is Screen.PlanetSelection -> PlanetSelectionScreen(
             onBackClick = { currentScreen = Screen.Menu }
         )

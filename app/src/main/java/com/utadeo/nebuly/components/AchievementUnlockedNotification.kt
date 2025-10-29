@@ -1,6 +1,5 @@
 package com.utadeo.nebuly.components
 
-import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,12 +42,12 @@ fun AchievementUnlockedNotification(
         label = "scale"
     )
 
-    // Animación de entrada
+
     LaunchedEffect(Unit) {
         visible = true
-        delay(3000) // Mostrar por 3 segundos
+        delay(3000)
         visible = false
-        delay(300) // Esperar a que termine la animación de salida
+        delay(300)
         onDismiss()
     }
 
@@ -79,7 +78,7 @@ fun AchievementUnlockedNotification(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Título
+
             Text(
                 text = "🏆 ¡LOGRO DESBLOQUEADO! 🏆",
                 fontSize = 24.sp,
@@ -134,7 +133,6 @@ fun AchievementUnlockedNotification(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Nombre del planeta
             Text(
                 text = achievement.planetName,
                 fontSize = 28.sp,
@@ -145,7 +143,6 @@ fun AchievementUnlockedNotification(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Descripción
             Text(
                 text = achievement.description,
                 fontSize = 16.sp,

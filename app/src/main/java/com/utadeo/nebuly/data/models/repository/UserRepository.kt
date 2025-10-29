@@ -10,9 +10,6 @@ class UserRepository {
     private val firestore = FirebaseFirestore.getInstance()
     private val usersCollection = firestore.collection("users")
 
-    /**
-     * 🆕 Crea un nuevo usuario en Firebase con valores por defecto
-     */
     suspend fun createUser(userId: String, username: String, email: String): Result<User> {
         return try {
             Log.d("UserRepository", "Creando usuario en Firebase: $userId")
@@ -43,9 +40,6 @@ class UserRepository {
         }
     }
 
-    /**
-     * Obtiene los datos del usuario
-     */
     suspend fun getUser(userId: String): Result<User> {
         return try {
             Log.d("UserRepository", "Obteniendo usuario: $userId")
@@ -72,9 +66,6 @@ class UserRepository {
         }
     }
 
-    /**
-     * Compra un avatar deduciendo monedas y agregándolo a avatares desbloqueados
-     */
     suspend fun purchaseAvatar(userId: String, avatarId: String, cost: Int): Result<Boolean> {
         return try {
             Log.d("UserRepository", "Iniciando compra - User: $userId, Avatar: $avatarId, Costo: $cost")
@@ -111,9 +102,6 @@ class UserRepository {
         }
     }
 
-    /**
-     * Actualiza el avatar actual del usuario
-     */
     suspend fun setCurrentAvatar(userId: String, avatarId: String): Result<Boolean> {
         return try {
             Log.d("UserRepository", "Actualizando avatar actual: $userId -> $avatarId")
@@ -130,9 +118,6 @@ class UserRepository {
         }
     }
 
-    /**
-     * Agrega monedas al usuario (para testing o recompensas)
-     */
     suspend fun addCoins(userId: String, amount: Int): Result<Boolean> {
         return try {
             Log.d("UserRepository", "Agregando $amount monedas al usuario: $userId")

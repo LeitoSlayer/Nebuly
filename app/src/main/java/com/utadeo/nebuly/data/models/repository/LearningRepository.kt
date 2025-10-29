@@ -202,10 +202,6 @@ class LearningRepository {
         }
     }
 
-    /**
-     * 🆕 Verifica si el siguiente nivel ya está desbloqueado
-     * (Si lo está, significa que ya completó este nivel antes)
-     */
     suspend fun isNextLevelUnlocked(userId: String, currentLevelId: String): Result<Boolean> {
         return try {
             Log.e(TAG, "========================================")

@@ -11,9 +11,6 @@ class QuestionRepository {
 
     private val TAG = "🔥QUESTIONS_DEBUG🔥"
 
-    /**
-     * Obtiene las 5 preguntas de un nivel específico
-     */
     suspend fun getQuestionsForLevel(levelId: String): Result<List<Question>> {
         return try {
             Log.e(TAG, "========================================")

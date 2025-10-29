@@ -1,5 +1,6 @@
 package com.utadeo.nebuly.screens.viewer
 
+import android.app.Activity
 import android.content.Intent
 import androidx.compose.animation.*
 import androidx.compose.foundation.Image
@@ -11,8 +12,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
+import com.utadeo.nebuly.components.BackButton
 import com.utadeo.nebuly.data.models.PlanetPreview
 import com.utadeo.nebuly.data.models.repository.PlanetRepository
 import kotlinx.coroutines.launch
@@ -43,11 +43,23 @@ fun PlanetSelectionScreen(
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
+    // Orden deseado de los planetas
+    val planetOrder = listOf(
+        "Mercurio", "Venus", "Tierra", "Marte",
+        "Júpiter", "Saturno", "Urano", "Neptuno"
+    )
+
     LaunchedEffect(Unit) {
         scope.launch {
             repository.getPlanetPreviews().fold(
                 onSuccess = {
-                    planets = it
+                    // Ordenar los planetas según el orden establecido
+                    planets = it.sortedBy { planet ->
+                        val index = planetOrder.indexOfFirst { name ->
+                            planet.planetName.equals(name, ignoreCase = true)
+                        }
+                        if (index == -1) Int.MAX_VALUE else index
+                    }
                     isLoading = false
                 },
                 onFailure = {
@@ -85,13 +97,10 @@ fun PlanetSelectionScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
-                        )
-                    }
+                    BackButton(
+                        onClick = onBackClick,
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent
@@ -253,4 +262,3 @@ fun PlanetCard(
         }
     }
 }
-

@@ -3,7 +3,7 @@ package com.utadeo.nebuly.data.models
 data class PlanetData(
     val planetId: String = "",
     val planetName: String = "",
-    val modelUrl: String = "", // Ruta en Firebase Storage: "planets/earth.glb"
+    val modelUrl: String = "",
     val pois: List<PointOfInterest> = emptyList()
 )
 
@@ -16,11 +16,10 @@ data class PointOfInterest(
     val emoji: String = "📍"
 )
 
-// Modelo para la lista de planetas en la pantalla de selección
 data class PlanetPreview(
     val planetId: String,
     val planetName: String,
-    val imageUrl: String, // De la colección "levels"
+    val imageUrl: String,
     val isUnlocked: Boolean = true
 )
 

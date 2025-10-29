@@ -1,8 +1,5 @@
 package com.utadeo.nebuly.data.models
 
-/**
- * Modelo para un logro
- */
 data class Achievement(
     val id: String = "",
     val name: String = "",

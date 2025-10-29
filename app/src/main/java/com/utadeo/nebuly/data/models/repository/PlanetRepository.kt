@@ -16,10 +16,6 @@ class PlanetRepository {
     private val poisCollection = firestore.collection("planet_pois")
     private val levelsCollection = firestore.collection("levels")
 
-    /**
-     * Obtiene la lista de planetas disponibles para la pantalla de selección
-     * Usa las imágenes de la colección "levels"
-     */
     suspend fun getPlanetPreviews(): Result<List<PlanetPreview>> {
         return try {
             Log.d("PlanetRepository", "Cargando lista de planetas...")
@@ -34,7 +30,6 @@ class PlanetRepository {
                     val planetName = doc.getString("planetName") ?: return@mapNotNull null
                     val imageUrl = doc.getString("planetImageUrl") ?: return@mapNotNull null
 
-                    // Extraer planetId del levelId (level_earth -> earth)
                     val planetId = doc.id.removePrefix("level_")
 
                     PlanetPreview(
@@ -57,9 +52,6 @@ class PlanetRepository {
         }
     }
 
-    /**
-     * Obtiene los datos completos de un planeta específico (modelo 3D + POIs)
-     */
     suspend fun getPlanetData(planetId: String): Result<PlanetData> {
         return try {
             Log.d("PlanetRepository", "Cargando datos del planeta: $planetId")
@@ -74,7 +66,6 @@ class PlanetRepository {
             val planetName = doc.getString("planetName") ?: ""
             val modelUrl = doc.getString("modelUrl") ?: ""
 
-            // Parsear los POIs
             val poisList = doc.get("pois") as? List<HashMap<String, Any>> ?: emptyList()
             val pois = poisList.mapNotNull { poiMap ->
                 try {
@@ -107,25 +98,18 @@ class PlanetRepository {
         }
     }
 
-    /**
-     * Descarga el archivo .glb del modelo 3D desde Firebase Storage
-     * Devuelve la ruta local del archivo descargado
-     */
     suspend fun downloadPlanetModel(modelUrl: String, cacheDir: File): Result<String> {
         return try {
             Log.d("PlanetRepository", "Descargando modelo: $modelUrl")
 
-            // Crear archivo temporal en cache
             val fileName = modelUrl.substringAfterLast("/")
             val localFile = File(cacheDir, fileName)
 
-            // Si ya existe, no volver a descargar
             if (localFile.exists()) {
                 Log.d("PlanetRepository", "Modelo ya existe en cache: ${localFile.absolutePath}")
                 return Result.success(localFile.absolutePath)
             }
 
-            // Descargar desde Firebase Storage
             val storageRef = storage.reference.child(modelUrl)
             storageRef.getFile(localFile).await()
 

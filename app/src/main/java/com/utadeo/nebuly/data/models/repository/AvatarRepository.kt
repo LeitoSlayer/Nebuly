@@ -11,9 +11,6 @@ class AvatarRepository {
     private val avatarsCollection = firestore.collection("avatars")
     private val usersCollection = firestore.collection("users")
 
-    /**
-     * Obtiene todos los avatares sin filtrar
-     */
     suspend fun getAllAvatars(): Result<List<Avatar>> {
         return try {
             Log.d("AvatarRepository", "Iniciando carga de avatares...")
@@ -57,10 +54,6 @@ class AvatarRepository {
         }
     }
 
-    /**
-     * Obtiene los avatares con el estado de desbloqueo para un usuario específico
-     * Ahora basado en si el usuario los compró, no en nivel
-     */
     suspend fun getAvatarsForUser(userId: String): Result<List<Avatar>> {
         return try {
             Log.d("AvatarRepository", "Cargando avatares para usuario: $userId")
@@ -125,9 +118,6 @@ class AvatarRepository {
         }
     }
 
-    /**
-     * Establece el avatar actual del usuario
-     */
     suspend fun setCurrentAvatar(userId: String, avatarId: String): Result<Boolean> {
         return try {
             Log.d("AvatarRepository", "Actualizando avatar para usuario: $userId -> $avatarId")
@@ -144,9 +134,6 @@ class AvatarRepository {
         }
     }
 
-    /**
-     * Obtiene un avatar específico por su ID
-     */
     suspend fun getAvatarById(avatarId: String): Result<Avatar> {
         return try {
             Log.d("AvatarRepository", "Obteniendo avatar: $avatarId")
