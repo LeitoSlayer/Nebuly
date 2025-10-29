@@ -524,116 +524,275 @@ private fun QuizCompletionScreen(
     passed: Boolean,
     onContinue: () -> Unit
 ) {
+    // Animación de entrada
+    var visible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        visible = true
+    }
+
+    val scale by animateFloatAsState(
+        targetValue = if (visible) 1f else 0.8f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "scale"
+    )
+
+    val alpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(500),
+        label = "alpha"
+    )
+
+    // Animación del borde
+    val infiniteTransition = rememberInfiniteTransition(label = "border_shine")
+    val offset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 300f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "shine_offset"
+    )
+
+    val borderBrush = if (passed) {
+        // Borde dorado brillante para victoria
+        Brush.linearGradient(
+            colors = listOf(
+                Color(0xFFFFD700).copy(alpha = 0.9f),
+                Color.Transparent,
+                Color(0xFFFFD700).copy(alpha = 0.9f)
+            ),
+            start = androidx.compose.ui.geometry.Offset(offset, 0f),
+            end = androidx.compose.ui.geometry.Offset(offset + 300f, 300f)
+        )
+    } else {
+        // Borde rojo para derrota
+        Brush.linearGradient(
+            colors = listOf(
+                Color(0xFFFF6B6B).copy(alpha = 0.9f),
+                Color.Transparent,
+                Color(0xFFFF6B6B).copy(alpha = 0.9f)
+            ),
+            start = androidx.compose.ui.geometry.Offset(offset, 0f),
+            end = androidx.compose.ui.geometry.Offset(offset + 300f, 300f)
+        )
+    }
+
+    // Animación de brillo para los nebulones
+    val glowScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glow"
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.8f)),
+            .background(Color.Black.copy(alpha = 0.85f)),
         contentAlignment = Alignment.Center
     ) {
         Column(
             modifier = Modifier
                 .padding(32.dp)
-                .clip(RoundedCornerShape(24.dp))
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = if (passed) {
-                            listOf(Color(0xFF2E7D32), Color(0xFF4CAF50))
-                        } else {
-                            listOf(Color(0xFFB71C1C), Color(0xFFE53935))
-                        }
-                    )
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    this.alpha = alpha
+                }
+                .border(
+                    width = 3.dp,
+                    brush = borderBrush,
+                    shape = RoundedCornerShape(24.dp)
                 )
-                .padding(32.dp),
+                .clip(RoundedCornerShape(24.dp)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = if (passed) "¡Felicidades!" else "Intenta de nuevo",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Respuestas correctas:",
-                fontSize = 18.sp,
-                color = Color.White.copy(alpha = 0.9f)
-            )
-
-            Text(
-                text = "$correctAnswers/$totalQuestions",
-                fontSize = 48.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = Color.White
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (passed) {
-                if (isFirstTime) {
-                    Text(
-                        text = "Nebulones ganados:",
-                        fontSize = 18.sp,
-                        color = Color.White.copy(alpha = 0.9f)
-                    )
-                    Text(
-                        text = "+$coinsEarned",
-                        fontSize = 36.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFFFFD700)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "¡Siguiente nivel desbloqueado!",
-                        fontSize = 16.sp,
-                        color = Color.White,
-                        textAlign = TextAlign.Center
-                    )
-                } else {
-                    Text(
-                        text = "Ya completaste este nivel",
-                        fontSize = 16.sp,
-                        color = Color.White.copy(alpha = 0.9f),
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "(No se otorgan más nebulones)",
-                        fontSize = 14.sp,
-                        color = Color.White.copy(alpha = 0.7f),
-                        textAlign = TextAlign.Center
-                    )
-                }
-            } else {
-                Text(
-                    text = "Necesitas responder todas\nlas preguntas correctamente",
-                    fontSize = 16.sp,
-                    color = Color.White,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 22.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Botón continuar
             Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(Color.White.copy(alpha = 0.2f))
-                    .clickable { onContinue() }
-                    .padding(horizontal = 48.dp, vertical = 16.dp)
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = "Continuar",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
+                // Imagen de fondo
+                Image(
+                    painter = painterResource(
+                        id = if (passed) R.drawable.fondo_felicidades
+                        else R.drawable.fondo_incorrecto
+                    ),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(500.dp),
+                    contentScale = ContentScale.Crop,
+                    alpha = 0.95f
                 )
+
+                // Capa semi-transparente para legibilidad
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(500.dp)
+                        .background(Color.Black.copy(alpha = 0.4f))
+                )
+
+                // Contenido
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Text(
+                        text = "Respuestas correctas:",
+                        fontSize = 18.sp,
+                        color = Color.White.copy(alpha = 0.95f),
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Text(
+                        text = "$correctAnswers/$totalQuestions",
+                        fontSize = 52.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    if (passed) {
+                        if (isFirstTime) {
+                            Text(
+                                text = "Nebulones ganados:",
+                                fontSize = 18.sp,
+                                color = Color.White.copy(alpha = 0.95f),
+                                fontWeight = FontWeight.Medium
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Nebulones con efecto de brillo
+                            Box(
+                                modifier = Modifier
+                                    .scale(glowScale)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(
+                                        Color(0xFFFFD700).copy(alpha = 0.2f)
+                                    )
+                                    .padding(horizontal = 24.dp, vertical = 12.dp)
+                            ) {
+                                Text(
+                                    text = "+$coinsEarned",
+                                    fontSize = 40.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFFFFD700)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(
+                                text = "¡Siguiente nivel desbloqueado!",
+                                fontSize = 17.sp,
+                                color = Color.White,
+                                textAlign = TextAlign.Center,
+                                fontWeight = FontWeight.Bold
+                            )
+                        } else {
+                            Text(
+                                text = "Ya completaste este nivel",
+                                fontSize = 17.sp,
+                                color = Color.White.copy(alpha = 0.95f),
+                                textAlign = TextAlign.Center,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "(No se otorgan más nebulones)",
+                                fontSize = 14.sp,
+                                color = Color.White.copy(alpha = 0.8f),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    } else {
+                        Text(
+                            text = "Necesitas responder todas\nlas preguntas correctamente",
+                            fontSize = 17.sp,
+                            color = Color.White,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 24.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    // Botón continuar mejorado con imagen y borde
+                    ContinueButton(onClick = onContinue)
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun ContinueButton(onClick: () -> Unit) {
+    // Animación del borde del botón
+    val infiniteTransition = rememberInfiniteTransition(label = "button_shine")
+    val offset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 300f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "shine_offset"
+    )
+
+    val shinyBorder = Brush.linearGradient(
+        colors = listOf(
+            Color.White.copy(alpha = 0.9f),
+            Color.Transparent,
+            Color.White.copy(alpha = 0.9f)
+        ),
+        start = androidx.compose.ui.geometry.Offset(offset, 0f),
+        end = androidx.compose.ui.geometry.Offset(offset + 300f, 300f)
+    )
+
+    Box(
+        modifier = Modifier
+            .width(250.dp)
+            .height(60.dp)
+            .border(
+                width = 3.dp,
+                brush = shinyBorder,
+                shape = RoundedCornerShape(35.dp)
+            )
+            .clip(RoundedCornerShape(35.dp))
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        // Imagen de fondo del botón
+        Image(
+            painter = painterResource(R.drawable.botones_inicio_registro),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+
+        // Texto del botón
+        Text(
+            text = "Continuar",
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
     }
 }
 
