@@ -19,6 +19,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.utadeo.nebuly.data.models.PlanetData
+import com.utadeo.nebuly.data.models.PointOfInterest
+import com.utadeo.nebuly.data.models.repository.PlanetRepository
 import dev.romainguy.kotlin.math.*
 import io.github.sceneview.Scene
 import io.github.sceneview.node.ModelNode
@@ -26,129 +29,143 @@ import io.github.sceneview.rememberEngine
 import io.github.sceneview.rememberModelLoader
 import io.github.sceneview.rememberCameraNode
 import io.github.sceneview.math.Position
+import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
 import kotlin.math.*
 
 class ModelViewerActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val planetId = intent.getStringExtra("PLANET_ID") ?: "earth"
+
         setContent {
             MaterialTheme {
-                ModelViewerScreen()
+                ModelViewerScreen(
+                    planetId = planetId,
+                    cacheDir = cacheDir,
+                    filesDir = filesDir
+                )
             }
         }
     }
 }
 
-data class InfoTierra(
-    val id: String,
-    val titulo: String,
-    val latitud: Float,
-    val longitud: Float,
-    val descripcion: String,
-    val emoji: String
-)
-
-val informacionTierra = listOf(
-    InfoTierra(
-        id = "tamano",
-        titulo = "Tamaño",
-        latitud = 0f,
-        longitud = 180f,
-        descripcion = "Mido 12,742 km de ancho. ¡Soy el planeta rocoso más grande de nuestro sistema!",
-        emoji = "🔍"
-    ),
-    InfoTierra(
-        id = "distancia",
-        titulo = "Distancia del Sol",
-        latitud = 35f,
-        longitud = -128.6f,
-        descripcion = "Estoy a 150 millones de km del Sol. ¡Es la distancia perfecta para no tener demasiado calor ni demasiado frío!",
-        emoji = "🌞"
-    ),
-    InfoTierra(
-        id = "orbita",
-        titulo = "Viaje alrededor del Sol",
-        latitud = -25f,
-        longitud = -77.2f,
-        descripcion = "Tardo 365 días en dar una vuelta completa alrededor del sol.",
-        emoji = "💫"
-    ),
-    InfoTierra(
-        id = "rotacion",
-        titulo = "Días",
-        latitud = 50f,
-        longitud = -25.8f,
-        descripcion = "Giro sobre mí mismo en 24 horas.",
-        emoji = "⏳"
-    ),
-    InfoTierra(
-        id = "temperatura",
-        titulo = "Temperatura",
-        latitud = -40f,
-        longitud = 25.6f,
-        descripcion = "Tengo una temperatura perfecta para la vida, con una media de 15 °C; dependiendo de los lugares unos pueden ser muy fríos y otros muy calientes.",
-        emoji = "🌡️"
-    ),
-    InfoTierra(
-        id = "luna",
-        titulo = "Lunas",
-        latitud = 15f,
-        longitud = 77f,
-        descripcion = "Tengo una luna preciosa y grande.",
-        emoji = "🌛"
-    ),
-    InfoTierra(
-        id = "superpoder",
-        titulo = "Superpoder",
-        latitud = -55f,
-        longitud = 128.4f,
-        descripcion = "¡Soy el único planeta con agua líquida en la superficie y con vida! Tengo millones de especies de animales, plantas y otros seres.",
-        emoji = "✨"
-    )
+data class PuntoProyectado(
+    val screenX: Float,
+    val screenY: Float,
+    val esVisible: Boolean
 )
 
 @Composable
-fun ModelViewerScreen() {
+fun ModelViewerScreen(
+    planetId: String,
+    cacheDir: File,
+    filesDir: File
+) {
+    val repository = remember { PlanetRepository() }
+    val scope = rememberCoroutineScope()
+
     var isLoading by remember { mutableStateOf(true) }
+    var loadingMessage by remember { mutableStateOf("Cargando planeta...") }
     var modelNode by remember { mutableStateOf<ModelNode?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var infoSeleccionada by remember { mutableStateOf<InfoTierra?>(null) }
+    var infoSeleccionada by remember { mutableStateOf<PointOfInterest?>(null) }
     var infosDescubiertas by remember { mutableStateOf(setOf<String>()) }
     var puntosProyectados by remember { mutableStateOf<Map<String, PuntoProyectado>>(emptyMap()) }
+    var planetData by remember { mutableStateOf<PlanetData?>(null) }
 
     val engine = rememberEngine()
     val modelLoader = rememberModelLoader(engine)
     val cameraNode = rememberCameraNode(engine)
 
-    LaunchedEffect(Unit) {
-        try {
-            val instance = modelLoader.createModelInstance(
-                assetFileLocation = "models/earth.glb"
-            )
+    LaunchedEffect(planetId) {
+        scope.launch {
+            try {
+                // 1. Cargar datos del planeta desde Firestore
+                loadingMessage = "Cargando información del planeta..."
+                val result = repository.getPlanetData(planetId)
 
-            if (instance != null) {
-                modelNode = ModelNode(
-                    modelInstance = instance,
-                    scaleToUnits = 2f,
-                    centerOrigin = Position(0f, 0f, 0f)
-                ).apply {
-                    position = Position(x = 0f, y = 0f, z = 0f)
-                }
+                result.fold(
+                    onSuccess = { data ->
+                        planetData = data
 
-                cameraNode.position = Position(x = 0f, y = 0f, z = 6f)
-                cameraNode.lookAt(Position(0f, 0f, 0f))
-            } else {
-                errorMessage = "No se pudo crear la instancia del modelo"
+                        // 2. Descargar modelo 3D desde Firebase Storage
+                        loadingMessage = "Descargando modelo 3D..."
+                        val downloadResult = repository.downloadPlanetModel(data.modelUrl, cacheDir)
+
+                        downloadResult.fold(
+                            onSuccess = { localPath ->
+                                // 3. Copiar el archivo a filesDir para que SceneView pueda leerlo
+                                loadingMessage = "Preparando visualización..."
+
+                                try {
+                                    val sourceFile = File(localPath)
+                                    if (!sourceFile.exists()) {
+                                        errorMessage = "Archivo no encontrado: $localPath"
+                                        isLoading = false
+                                        return@fold
+                                    }
+
+                                    // Crear directorio models en filesDir si no existe
+                                    val modelsDir = File(filesDir, "models")
+                                    if (!modelsDir.exists()) {
+                                        modelsDir.mkdirs()
+                                    }
+
+                                    // Copiar archivo
+                                    val destFile = File(modelsDir, sourceFile.name)
+                                    sourceFile.copyTo(destFile, overwrite = true)
+
+                                    // Cargar el modelo usando el File directamente
+                                    val instance = modelLoader.createModelInstance(
+                                        file = destFile
+                                    )
+
+                                    if (instance != null) {
+                                        modelNode = ModelNode(
+                                            modelInstance = instance,
+                                            scaleToUnits = 2f,
+                                            centerOrigin = Position(0f, 0f, 0f)
+                                        ).apply {
+                                            position = Position(x = 0f, y = 0f, z = 0f)
+                                        }
+
+                                        cameraNode.position = Position(x = 0f, y = 0f, z = 6f)
+                                        cameraNode.lookAt(Position(0f, 0f, 0f))
+
+                                        isLoading = false
+                                    } else {
+                                        errorMessage = "No se pudo crear la instancia del modelo"
+                                        isLoading = false
+                                    }
+                                } catch (e: Exception) {
+                                    errorMessage = "Error cargando modelo: ${e.message}\n${e.stackTraceToString()}"
+                                    isLoading = false
+                                }
+                            },
+                            onFailure = { error ->
+                                errorMessage = "Error descargando modelo: ${error.message}"
+                                isLoading = false
+                            }
+                        )
+                    },
+                    onFailure = { error ->
+                        errorMessage = "Error cargando datos: ${error.message}"
+                        isLoading = false
+                    }
+                )
+            } catch (e: Exception) {
+                errorMessage = "Error: ${e.message}"
+                isLoading = false
             }
-        } catch (e: Exception) {
-            errorMessage = "Error al cargar: ${e.message}"
-        } finally {
-            isLoading = false
         }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        if (modelNode != null) {
+        if (modelNode != null && planetData != null) {
             Scene(
                 modifier = Modifier.fillMaxSize(),
                 engine = engine,
@@ -159,16 +176,16 @@ fun ModelViewerScreen() {
                 onFrame = {
                     val nuevasProyecciones = mutableMapOf<String, PuntoProyectado>()
 
-                    informacionTierra.forEach { info ->
+                    planetData!!.pois.forEach { poi ->
                         val proyeccion = calcularProyeccionPunto(
-                            info = info,
+                            poi = poi,
                             modelNode = modelNode!!,
                             cameraNode = cameraNode,
                             radioEsfera = 1f
                         )
 
                         if (proyeccion != null) {
-                            nuevasProyecciones[info.id] = proyeccion
+                            nuevasProyecciones[poi.id] = proyeccion
                         }
                     }
 
@@ -178,11 +195,11 @@ fun ModelViewerScreen() {
 
             PuntosInteractivosOverlay(
                 puntosProyectados = puntosProyectados,
-                informacionTierra = informacionTierra,
+                pois = planetData!!.pois,
                 infosDescubiertas = infosDescubiertas,
-                onInfoClick = { info ->
-                    infoSeleccionada = info
-                    infosDescubiertas = infosDescubiertas + info.id
+                onInfoClick = { poi ->
+                    infoSeleccionada = poi
+                    infosDescubiertas = infosDescubiertas + poi.id
                 }
             )
         }
@@ -203,7 +220,7 @@ fun ModelViewerScreen() {
                         color = Color.White
                     )
                     Text(
-                        text = "Cargando planeta...",
+                        text = loadingMessage,
                         color = Color.White,
                         style = MaterialTheme.typography.bodyLarge
                     )
@@ -231,13 +248,13 @@ fun ModelViewerScreen() {
                     Text(
                         text = errorMessage ?: "Error desconocido",
                         color = Color.White,
-                        style = MaterialTheme.typography.bodyLarge
+                        style = MaterialTheme.typography.bodySmall
                     )
                 }
             }
         }
 
-        if (!isLoading && errorMessage == null) {
+        if (!isLoading && errorMessage == null && planetData != null) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -254,7 +271,7 @@ fun ModelViewerScreen() {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "Explora la Tierra",
+                            text = "Explora ${planetData!!.planetName}",
                             color = Color.White,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
@@ -276,7 +293,7 @@ fun ModelViewerScreen() {
                                     .background(Color(0xFF4CAF50), CircleShape)
                             )
                             Text(
-                                text = "${infosDescubiertas.size}/${informacionTierra.size} descubiertos",
+                                text = "${infosDescubiertas.size}/${planetData!!.pois.size} descubiertos",
                                 color = Color(0xFF4CAF50),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Bold
@@ -290,27 +307,21 @@ fun ModelViewerScreen() {
 
     if (infoSeleccionada != null) {
         DialogoInformacion(
-            info = infoSeleccionada!!,
+            poi = infoSeleccionada!!,
             onDismiss = { infoSeleccionada = null }
         )
     }
 }
 
-data class PuntoProyectado(
-    val screenX: Float,
-    val screenY: Float,
-    val esVisible: Boolean
-)
-
 fun calcularProyeccionPunto(
-    info: InfoTierra,
+    poi: PointOfInterest,
     modelNode: ModelNode,
     cameraNode: io.github.sceneview.node.CameraNode,
     radioEsfera: Float
 ): PuntoProyectado? {
     try {
-        val latRad = Math.toRadians(info.latitud.toDouble()).toFloat()
-        val lonRad = Math.toRadians(info.longitud.toDouble()).toFloat()
+        val latRad = Math.toRadians(poi.latitud.toDouble()).toFloat()
+        val lonRad = Math.toRadians(poi.longitud.toDouble()).toFloat()
 
         val x = radioEsfera * cos(latRad) * sin(lonRad)
         val y = radioEsfera * sin(latRad)
@@ -367,9 +378,9 @@ fun calcularProyeccionPunto(
 @Composable
 fun PuntosInteractivosOverlay(
     puntosProyectados: Map<String, PuntoProyectado>,
-    informacionTierra: List<InfoTierra>,
+    pois: List<PointOfInterest>,
     infosDescubiertas: Set<String>,
-    onInfoClick: (InfoTierra) -> Unit
+    onInfoClick: (PointOfInterest) -> Unit
 ) {
     var anchoPantalla by remember { mutableStateOf(0f) }
     var altoPantalla by remember { mutableStateOf(0f) }
@@ -386,11 +397,11 @@ fun PuntosInteractivosOverlay(
             val centroX = anchoPantalla / 2f
             val centroY = altoPantalla / 2f
 
-            var puntoMasCercano: Pair<InfoTierra, PuntoProyectado>? = null
+            var puntoMasCercano: Pair<PointOfInterest, PuntoProyectado>? = null
             var distanciaMinima = Float.MAX_VALUE
 
-            informacionTierra.forEach { info ->
-                val proyeccion = puntosProyectados[info.id]
+            pois.forEach { poi ->
+                val proyeccion = puntosProyectados[poi.id]
 
                 if (proyeccion != null && proyeccion.esVisible) {
                     val x = proyeccion.screenX * anchoPantalla
@@ -403,24 +414,24 @@ fun PuntosInteractivosOverlay(
 
                     if (distancia < distanciaMinima) {
                         distanciaMinima = distancia
-                        puntoMasCercano = Pair(info, proyeccion)
+                        puntoMasCercano = Pair(poi, proyeccion)
                     }
                 }
             }
 
-            puntoMasCercano?.let { (info, proyeccion) ->
+            puntoMasCercano?.let { (poi, proyeccion) ->
                 val x = (proyeccion.screenX * anchoPantalla).toInt()
                 val y = (proyeccion.screenY * altoPantalla).toInt()
-                val esDescubierto = infosDescubiertas.contains(info.id)
+                val esDescubierto = infosDescubiertas.contains(poi.id)
 
                 Box(
                     modifier = Modifier
                         .offset { IntOffset(x - 28, y - 28) }
                 ) {
                     MarcadorInfo(
-                        info = info,
+                        poi = poi,
                         esDescubierto = esDescubierto,
-                        onClick = { onInfoClick(info) }
+                        onClick = { onInfoClick(poi) }
                     )
                 }
             }
@@ -430,7 +441,7 @@ fun PuntosInteractivosOverlay(
 
 @Composable
 fun MarcadorInfo(
-    info: InfoTierra,
+    poi: PointOfInterest,
     esDescubierto: Boolean,
     onClick: () -> Unit
 ) {
@@ -462,7 +473,7 @@ fun MarcadorInfo(
             )
 
             Text(
-                text = info.emoji,
+                text = poi.emoji,
                 style = MaterialTheme.typography.titleLarge
             )
 
@@ -497,7 +508,7 @@ fun MarcadorInfo(
 
 @Composable
 fun DialogoInformacion(
-    info: InfoTierra,
+    poi: PointOfInterest,
     onDismiss: () -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss) {
@@ -516,13 +527,13 @@ fun DialogoInformacion(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = info.emoji,
+                    text = poi.emoji,
                     style = MaterialTheme.typography.displayLarge
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = info.titulo,
+                    text = poi.titulo,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -533,7 +544,7 @@ fun DialogoInformacion(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = info.descripcion,
+                    text = poi.descripcion,
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     lineHeight = MaterialTheme.typography.bodyLarge.lineHeight
@@ -547,7 +558,7 @@ fun DialogoInformacion(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = "¡Atrás!",
+                        text = "¡Entendido!",
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
