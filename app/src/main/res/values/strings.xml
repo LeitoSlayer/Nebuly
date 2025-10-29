@@ -43,5 +43,15 @@
     <string name="achievements_locked">Bloqueado</string>
     <string name="achievements_new_unlocked">🏆 ¡Nuevo logro desbloqueado!</string>
 
-
+    <!-- Planet Viewer strings -->
+    <string name="planet_selection_title">Explora la Tierra</string>
+    <string name="planet_loading">Cargando planetas…</string>
+    <string name="planet_model_loading">Cargando modelo 3D…</string>
+    <string name="planet_info_loading">Cargando información del planeta…</string>
+    <string name="planet_downloading">Descargando modelo 3D…</string>
+    <string name="planet_preparing">Preparando visualización…</string>
+    <string name="planet_error">Error al cargar el planeta</string>
+    <string name="planet_rotate_hint">Rota para descubrir información</string>
+    <string name="planet_discovered_count">%1$d de %2$d descubiertos</string>
+    <string name="planet_understood">¡Entendido!</string>
 </resources>
