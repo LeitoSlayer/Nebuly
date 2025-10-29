@@ -78,7 +78,7 @@ fun QuestionScreen(
     var showFeedback by remember { mutableStateOf(false) }
     var isProcessing by remember { mutableStateOf(false) }
 
-    // 🆕 Lista para trackear el estado de cada pregunta
+    //  Lista para trackear el estado de cada pregunta
     var questionStates by remember { mutableStateOf<List<QuestionState>>(emptyList()) }
 
     var isFirstTime by remember { mutableStateOf(true) }
@@ -185,7 +185,7 @@ fun QuestionScreen(
                 ) {
                     Spacer(modifier = Modifier.height(80.dp))
 
-                    // 🆕 Nuevo indicador de progreso con planetas
+                    //  Nuevo indicador de progreso con planetas
                     PlanetProgressIndicator(
                         totalQuestions = questions.size,
                         currentQuestionIndex = currentQuestionIndex,
@@ -229,7 +229,7 @@ fun QuestionScreen(
                                     isAnswerCorrect = index == currentQuestion.correctAnswer
                                     showFeedback = true
 
-                                    // 🆕 Actualizar estado de la pregunta
+                                    // Actualizar estado de la pregunta
                                     val newStates = questionStates.toMutableList()
                                     newStates[currentQuestionIndex] = if (isAnswerCorrect == true) {
                                         QuestionState.CORRECT
@@ -340,14 +340,14 @@ fun QuestionScreen(
     }
 }
 
-// 🆕 Enum para estados de preguntas
+//   estados de preguntas
 enum class QuestionState {
     PENDING,
     CORRECT,
     INCORRECT
 }
 
-// 🆕 Nuevo componente de indicador de planetas
+//  Nuevo componente de indicador de planetas
 @Composable
 private fun PlanetProgressIndicator(
     totalQuestions: Int,
