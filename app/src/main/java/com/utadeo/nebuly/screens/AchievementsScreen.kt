@@ -35,7 +35,7 @@ fun AchievementsScreen(
     val isLoading by viewModel.isLoading
     val errorMessage by viewModel.errorMessage
 
-    // 🆕 Log para debug
+    //  Log para debug
     LaunchedEffect(Unit) {
         val userId = auth.currentUser?.uid
         Log.e("AchievementsScreen", "=========================================")
@@ -49,7 +49,7 @@ fun AchievementsScreen(
         }
     }
 
-    // 🆕 Log de estados
+    //  Log de estados
     LaunchedEffect(isLoading, errorMessage, achievements.size) {
         Log.e("AchievementsScreen", "isLoading: $isLoading")
         Log.e("AchievementsScreen", "errorMessage: $errorMessage")

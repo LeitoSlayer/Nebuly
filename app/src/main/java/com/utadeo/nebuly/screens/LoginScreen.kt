@@ -1,6 +1,3 @@
-// ============================================
-// LoginScreen.kt - Diseño para Niños
-// ============================================
 
 package com.utadeo.nebuly.screens
 
