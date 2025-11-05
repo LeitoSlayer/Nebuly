@@ -16,7 +16,7 @@ import com.utadeo.nebuly.screens.learning.NivelesScreen
 import com.utadeo.nebuly.screens.learning.PlanetDetailScreen
 import com.utadeo.nebuly.screens.learning.QuestionScreen
 import com.utadeo.nebuly.screens.achievements.AchievementsScreen
-import com.utadeo.nebuly.screens.viewer.PlanetSelectionScreen // 🆕
+import com.utadeo.nebuly.screens.viewer.PlanetSelectionScreen
 
 sealed class Screen {
     object Welcome : Screen()
@@ -42,13 +42,18 @@ sealed class Screen {
     ) : Screen()
 
     object Achievements : Screen()
-
     object PlanetSelection : Screen()
 }
 
 @Composable
 fun AppNavigation(auth: FirebaseAuth) {
-    var currentScreen by remember { mutableStateOf<Screen>(Screen.Welcome) }
+    val initialScreen = if (auth.currentUser != null) {
+        Screen.Menu
+    } else {
+        Screen.Welcome
+    }
+
+    var currentScreen by remember { mutableStateOf<Screen>(initialScreen) }
     var previousScreen by remember { mutableStateOf<Screen?>(null) }
 
     when (currentScreen) {
@@ -105,6 +110,9 @@ fun AppNavigation(auth: FirebaseAuth) {
                         returnTo = Screen.Menu
                     )
                 }
+            },
+            onLogoutClick = {
+                currentScreen = Screen.Welcome
             }
         )
 
