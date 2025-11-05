@@ -4,9 +4,12 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -23,14 +26,15 @@ fun MenuScreen(
     onStoreClick: () -> Unit = {},
     onLearningClick: () -> Unit = {},
     onAchievementsClick: () -> Unit = {},
-    onInvestigarClick: () -> Unit = {}, //  Callback para investigar (visor 3D)
+    onInvestigarClick: () -> Unit = {},
     onAvatarClick: () -> Unit,
+    onLogoutClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier.fillMaxSize()
     ) {
-        // Fondo espacial
+
         Image(
             painter = painterResource(id = R.drawable.fondo_inicio_sesion),
             contentDescription = null,
@@ -38,7 +42,7 @@ fun MenuScreen(
             contentScale = ContentScale.Crop
         )
 
-        // Contenido con scroll
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -48,14 +52,14 @@ fun MenuScreen(
         ) {
             Spacer(modifier = Modifier.height(80.dp))
 
-            // UserHeader clickeable
+
             UserHeader(
                 auth = auth,
                 modifier = Modifier.padding(bottom = 20.dp),
                 onClick = onAvatarClick
             )
 
-            // Tarjeta Aprender - Navega a ruta de aprendizaje
+
             MenuCard(
                 imageRes = R.drawable.menu_aprender,
                 title = "Aprender",
@@ -64,7 +68,7 @@ fun MenuScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Tarjeta Investigar - Navega al visor 3D
+
             MenuCard(
                 imageRes = R.drawable.menu_investigar,
                 title = "Investigar",
@@ -73,7 +77,6 @@ fun MenuScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Tarjeta Tienda
             MenuCard(
                 imageRes = R.drawable.menu_tienda,
                 title = "Tienda",
@@ -82,7 +85,6 @@ fun MenuScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Tarjeta Logros - Navega a pantalla de logros
             MenuCard(
                 imageRes = R.drawable.menu_logros,
                 title = "Logros",
@@ -92,7 +94,6 @@ fun MenuScreen(
             Spacer(modifier = Modifier.height(100.dp))
         }
 
-        // Botón de retroceso
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -100,6 +101,28 @@ fun MenuScreen(
             contentAlignment = Alignment.TopStart
         ) {
             BackButton(onClick = onBackClick)
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 20.dp, end = 20.dp),
+            contentAlignment = Alignment.TopEnd
+        ) {
+            IconButton(
+                onClick = {
+                    auth.signOut()
+                    onLogoutClick()
+                },
+                modifier = Modifier.size(80.dp)
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.boton_salida),
+                    contentDescription = "Cerrar sesión",
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(64.dp)
+                )
+            }
         }
     }
 }
