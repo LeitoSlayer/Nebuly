@@ -99,7 +99,7 @@ app/
 ## Instalación
 
 -Paso 1: Clonar el repositorio\
- https://github.com/LeitoSlayer/Nebuly.git`
+ https://github.com/LeitoSlayer/Nebuly.git
 
 -Paso 2:\
 Abre Android Studio\
