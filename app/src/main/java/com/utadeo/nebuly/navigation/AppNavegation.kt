@@ -76,7 +76,7 @@ fun AppNavigation(auth: FirebaseAuth) {
             onBackClick = { currentScreen = Screen.Welcome },
             onNavigateToLogin = { currentScreen = Screen.Login },
             onNavigateToAvatarSelection = { _ ->
-                currentScreen = Screen.Welcome
+                currentScreen = Screen.Login
             }
         )
 
