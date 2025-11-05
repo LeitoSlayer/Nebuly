@@ -106,4 +106,5 @@ Abre Android Studio\
 Seleccionar File → Open\
 Selecciona la carpeta Nebuly\
 Espera a que Gradle sincronice automáticamente los módulos.
+- Rama principal **master** 
 
