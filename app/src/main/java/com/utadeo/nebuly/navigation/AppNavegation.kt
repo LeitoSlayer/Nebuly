@@ -17,6 +17,8 @@ import com.utadeo.nebuly.screens.learning.PlanetDetailScreen
 import com.utadeo.nebuly.screens.learning.QuestionScreen
 import com.utadeo.nebuly.screens.achievements.AchievementsScreen
 import com.utadeo.nebuly.screens.viewer.PlanetSelectionScreen
+import androidx.activity.compose.BackHandler
+
 
 sealed class Screen {
     object Welcome : Screen()
@@ -73,8 +75,8 @@ fun AppNavigation(auth: FirebaseAuth) {
             auth = auth,
             onBackClick = { currentScreen = Screen.Welcome },
             onNavigateToLogin = { currentScreen = Screen.Login },
-            onNavigateToAvatarSelection = { userId ->
-                currentScreen = Screen.AvatarSelection(userId, returnTo = null)
+            onNavigateToAvatarSelection = { _ ->
+                currentScreen = Screen.Welcome
             }
         )
 
@@ -221,5 +223,73 @@ fun AppNavigation(auth: FirebaseAuth) {
         is Screen.PlanetSelection -> PlanetSelectionScreen(
             onBackClick = { currentScreen = Screen.Menu }
         )
+    }
+
+    //Manejo del botón físico de atrás del celular
+    BackHandler {
+        when (currentScreen) {
+            is Screen.Welcome -> {
+
+            }
+
+            is Screen.Login -> {
+                currentScreen = Screen.Welcome
+            }
+
+            is Screen.Register -> {
+                currentScreen = Screen.Welcome
+            }
+
+            is Screen.Comienzo -> {
+                currentScreen = Screen.Login
+            }
+
+            is Screen.Menu -> {
+                currentScreen = Screen.Comienzo
+            }
+
+            is Screen.Store -> {
+                currentScreen = Screen.Menu
+            }
+
+            is Screen.AvatarDetail -> {
+                currentScreen = Screen.Store
+            }
+
+            is Screen.RutaAprendizaje -> {
+                currentScreen = Screen.Menu
+            }
+
+            is Screen.Niveles -> {
+                currentScreen = Screen.RutaAprendizaje
+            }
+
+            is Screen.PlanetDetail -> {
+                val screen = currentScreen as Screen.PlanetDetail
+                currentScreen = Screen.Niveles(screen.moduleId, screen.moduleName)
+            }
+
+            is Screen.Question -> {
+                val screen = currentScreen as Screen.Question
+                currentScreen = Screen.PlanetDetail(
+                    levelId = screen.levelId,
+                    moduleId = screen.moduleId,
+                    moduleName = screen.moduleName
+                )
+            }
+
+            is Screen.Achievements -> {
+                currentScreen = Screen.Menu
+            }
+
+            is Screen.PlanetSelection -> {
+                currentScreen = Screen.Menu
+            }
+
+            is Screen.AvatarSelection -> {
+                val screen = currentScreen as Screen.AvatarSelection
+                currentScreen = screen.returnTo ?: Screen.Menu
+            }
+        }
     }
 }

@@ -158,15 +158,6 @@ fun ComienzoScreen(
             }
         }
 
-        // Botón de volver atrás
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 20.dp, start = 20.dp),
-            contentAlignment = Alignment.TopStart
-        ) {
-            BackButton(onClick = onBackClick)
-        }
     }
 }
 

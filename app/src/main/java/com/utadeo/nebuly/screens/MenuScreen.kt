@@ -104,7 +104,7 @@ fun MenuScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 20.dp, end = 20.dp),
+                .padding(top = 0.5.dp, end = 20.dp),
             contentAlignment = Alignment.TopEnd
         ) {
             IconButton(
@@ -118,7 +118,7 @@ fun MenuScreen(
                     painter = painterResource(id = R.drawable.boton_salida),
                     contentDescription = "Cerrar sesión",
                     tint = Color.Unspecified,
-                    modifier = Modifier.size(64.dp)
+                    modifier = Modifier.size(55.dp)
                 )
             }
         }
