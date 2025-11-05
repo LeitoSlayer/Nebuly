@@ -29,9 +29,9 @@ import com.utadeo.nebuly.R
 import com.utadeo.nebuly.components.ActionButton
 import com.utadeo.nebuly.components.BackButton
 import com.utadeo.nebuly.data.repository.UserRepository
+import com.utadeo.nebuly.data.models.repository.AuthRepository
 import com.utadeo.nebuly.ui.theme.AppDimens
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 @Composable
 fun RegisterScreen(
@@ -40,6 +40,10 @@ fun RegisterScreen(
     onNavigateToLogin: () -> Unit,
     onNavigateToAvatarSelection: (String) -> Unit = {}
 ) {
+    val authRepository = remember { AuthRepository() }
+    val userRepository = remember { UserRepository() }
+    val coroutineScope = rememberCoroutineScope()
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
@@ -48,9 +52,6 @@ fun RegisterScreen(
 
     val scrollState = rememberScrollState()
     val focusManager = LocalFocusManager.current
-    val scope = rememberCoroutineScope()
-    val userRepository = remember { UserRepository() }
-
     val emailFocusRequester = remember { FocusRequester() }
     val passwordFocusRequester = remember { FocusRequester() }
 
@@ -70,54 +71,44 @@ fun RegisterScreen(
             return
         }
 
-        isLoading = true
-        errorMessage = ""
+        coroutineScope.launch {
+            isLoading = true
+            errorMessage = ""
 
-        scope.launch {
-            try {
-                Log.d("RegisterScreen", "🔹 Iniciando registro para: $email")
+            Log.d("RegisterScreen", "🔹 Iniciando registro para: $email")
 
-                val authResult = auth.createUserWithEmailAndPassword(email, password).await()
-                val userId = authResult.user?.uid
 
-                if (userId == null) {
-                    errorMessage = "Error al crear usuario"
-                    isLoading = false
-                    return@launch
-                }
+            val authResult = authRepository.registerUser(email, password)
 
+            authResult.onSuccess { firebaseUser ->
+                val userId = firebaseUser.uid
                 Log.d("RegisterScreen", "✅ Usuario creado en Auth: $userId")
 
-                userRepository.createUser(
-                    userId = userId,
-                    username = username,
-                    email = email
-                ).fold(
-                    onSuccess = { user ->
-                        Log.d("RegisterScreen", "✅ Usuario guardado en Firestore")
-                        Log.d("RegisterScreen", "Módulos desbloqueados: ${user.unlockedModules}")
-                        Log.d("RegisterScreen", "Niveles desbloqueados: ${user.unlockedLevels}")
+                coroutineScope.launch {
+                    userRepository.createUser(
+                        userId = userId,
+                        username = username,
+                        email = email
+                    ).fold(
+                        onSuccess = { user ->
+                            Log.d("RegisterScreen", "✅ Usuario guardado en Firestore")
+                            Log.d("RegisterScreen", "Módulos desbloqueados: ${user.unlockedModules}")
+                            Log.d("RegisterScreen", "Niveles desbloqueados: ${user.unlockedLevels}")
 
-                        isLoading = false
-                        onNavigateToAvatarSelection(userId)
-                    },
-                    onFailure = { e ->
-                        Log.e("RegisterScreen", "❌ Error al guardar en Firestore", e)
-                        errorMessage = "Error al crear perfil: ${e.message}"
-                        isLoading = false
-                    }
-                )
-
-            } catch (e: Exception) {
-                Log.e("RegisterScreen", "❌ Error en registro", e)
-                errorMessage = when {
-                    e.message?.contains("already in use") == true ->
-                        "Este correo ya está registrado"
-                    e.message?.contains("network") == true ->
-                        "Error de conexión"
-                    else ->
-                        "Error: ${e.message}"
+                            isLoading = false
+                            onNavigateToAvatarSelection(userId)
+                        },
+                        onFailure = { e ->
+                            Log.e("RegisterScreen", "❌ Error al guardar en Firestore", e)
+                            errorMessage = "Error al crear perfil: ${e.message}"
+                            isLoading = false
+                        }
+                    )
                 }
+
+            }.onFailure { exception ->
+                Log.e("RegisterScreen", "❌ Error en registro de Auth", exception)
+                errorMessage = exception.message ?: "Error desconocido en el registro"
                 isLoading = false
             }
         }
@@ -213,7 +204,6 @@ fun RegisterScreen(
                             focusedIndicatorColor = Color.White
                         )
                     )
-
                     OutlinedTextField(
                         value = email,
                         onValueChange = {

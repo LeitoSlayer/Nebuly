@@ -1,6 +1,4 @@
-
 package com.utadeo.nebuly.screens
-
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
@@ -18,7 +16,6 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
@@ -26,14 +23,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import com.google.firebase.auth.FirebaseAuth
 import com.utadeo.nebuly.R
 import com.utadeo.nebuly.components.ActionButton
 import com.utadeo.nebuly.components.BackButton
 import com.utadeo.nebuly.ui.theme.AppDimens
-import com.utadeo.nebuly.utils.loginUser
-import com.utadeo.nebuly.utils.validateLoginInputs
-import androidx.compose.ui.res.stringResource
+import com.utadeo.nebuly.data.models.repository.AuthRepository
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
@@ -42,15 +39,48 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit,
     onNavigateToComienzo: () -> Unit
 ) {
+
+    val authRepository = remember { AuthRepository() }
+    val coroutineScope = rememberCoroutineScope()
+
+    // Estados de la UI
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
 
-    val context = LocalContext.current
     val scrollState = rememberScrollState()
     val focusManager = LocalFocusManager.current
     val passwordFocusRequester = remember { FocusRequester() }
+
+
+    fun performLogin() {
+
+        if (email.isBlank() || password.isBlank()) {
+            errorMessage = "Completar todos los campos correctamente"
+            return
+        }
+
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            errorMessage = "Correo electrónico inválido"
+            return
+        }
+
+        coroutineScope.launch {
+            isLoading = true
+            errorMessage = ""
+
+            val result = authRepository.loginUser(email, password)
+
+            result.onSuccess { user ->
+                isLoading = false
+                onNavigateToComienzo()
+            }.onFailure { exception ->
+                isLoading = false
+                errorMessage = exception.message ?: "Error desconocido al iniciar sesión"
+            }
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
@@ -82,7 +112,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(AppDimens.spacingLarge()))
 
-            // Logo de la app en lugar del ícono de perfil
             Image(
                 painter = painterResource(R.drawable.logo_nebuly_app),
                 contentDescription = "Logo Nebuly",
@@ -91,14 +120,12 @@ fun LoginScreen(
                     .padding(bottom = AppDimens.spacingLarge())
             )
 
-            // Card con imagen de fondo
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = AppDimens.spacingMedium())
                     .clip(RoundedCornerShape(24.dp))
             ) {
-                // Imagen de fondo del card
                 Image(
                     painter = painterResource(R.drawable.fondo_inicio_registro),
                     contentDescription = null,
@@ -171,17 +198,7 @@ fun LoginScreen(
                         keyboardActions = KeyboardActions(
                             onDone = {
                                 focusManager.clearFocus()
-                                if (validateLoginInputs(email, password)) {
-                                    loginUser(auth, email, password, context) { loading, error ->
-                                        isLoading = loading
-                                        errorMessage = error
-                                        if (error.isEmpty() && !loading) {
-                                            onNavigateToComienzo()
-                                        }
-                                    }
-                                } else {
-                                    errorMessage = "Completar todos los campos correctamente"
-                                }
+                                performLogin()
                             }
                         ),
                         singleLine = true,
@@ -204,6 +221,7 @@ fun LoginScreen(
                     )
                 }
             }
+
             if (errorMessage.isNotEmpty()) {
                 Text(
                     text = errorMessage,
@@ -215,19 +233,7 @@ fun LoginScreen(
             ActionButton(
                 text = stringResource(R.string.iniciar_sesion),
                 isLoading = isLoading,
-                onClick = {
-                    if (validateLoginInputs(email, password)) {
-                        loginUser(auth, email, password, context) { loading, error ->
-                            isLoading = loading
-                            errorMessage = error
-                            if (error.isEmpty() && !loading) {
-                                onNavigateToComienzo()
-                            }
-                        }
-                    } else {
-                        errorMessage = "Completar todos los campos correctamente"
-                    }
-                },
+                onClick = { performLogin() },
                 modifier = Modifier.height(AppDimens.buttonHeight())
             )
 
