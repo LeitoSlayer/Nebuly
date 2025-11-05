@@ -159,7 +159,7 @@ fun registerUser(
         }
 }
 
-e
+
 private fun createUserInFirestore(
     userId: String,
     username: String,
