@@ -108,3 +108,6 @@ Selecciona la carpeta Nebuly\
 Espera a que Gradle sincronice automáticamente los módulos.
 - Rama principal **master** 
 
+-Paso 3:\
+Para descargar el APK de la aplicación ingresar al siguiente link de drive\
+https://drive.google.com/drive/folders/1rpXR-HOSmX7Q03zCZcsYNXfZzAwz4eBX?usp=drive_link
