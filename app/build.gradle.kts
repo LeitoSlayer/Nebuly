@@ -98,4 +98,12 @@ dependencies {
 
     implementation("io.github.sceneview:sceneview:2.3.0")
 
+    //CameraX para la funcionalidad de cámara
+    implementation("androidx.camera:camera-core:1.3.1")
+    implementation("androidx.camera:camera-camera2:1.3.1")
+    implementation("androidx.camera:camera-lifecycle:1.3.1")
+    implementation("androidx.camera:camera-view:1.3.1")
+
+    //ML Kit para reconocimiento de texto
+    implementation("com.google.mlkit:text-recognition:16.0.0")
 }
