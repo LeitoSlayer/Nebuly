@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -13,14 +14,17 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -45,7 +49,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
 import java.io.File
-import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -55,18 +58,21 @@ data class PlanetaDetectable(
     val planetId: String,
     val nombrePlaneta: String,
     val escala: Float = 1.5f,
-    val velocidadRotacion: Float = 0.5f
+    val velocidadRotacion: Float = 0.5f,
+    val colorPrimario: Color = Color(0xFF4CAF50),
+    val colorSecundario: Color = Color(0xFF81C784)
 )
 
 val planetasDetectables = listOf(
-    PlanetaDetectable("1", "mercury", "Mercurio", 1.2f, 0.8f),
-    PlanetaDetectable("2", "venus", "Venus", 1.2f, 0.8f),
-    PlanetaDetectable("3", "earth", "Tierra", 1.2f, 0.8f),
-    PlanetaDetectable("4", "mars", "Marte", 1.2f, 0.8f),
-    PlanetaDetectable("5", "jupiter", "Júpiter", 1.2f, 0.8f),
-    PlanetaDetectable("6", "saturn", "Saturno", 1.2f, 0.8f),
-    PlanetaDetectable("7", "uranus", "Urano", 1.2f, 0.8f),
-    PlanetaDetectable("8", "neptune", "Neptuno", 1.2f, 0.8f)
+
+    PlanetaDetectable("1", "mercury", "Mercurio", 1.2f, 0.8f, Color(0xFF9E9E9E), Color(0xFFBDBDBD)),
+    PlanetaDetectable("2", "venus", "Venus", 1.2f, 0.8f, Color(0xFFFF9800), Color(0xFFFFB74D)),
+    PlanetaDetectable("3", "earth", "Tierra", 1.2f, 0.8f, Color(0xFF2196F3), Color(0xFF64B5F6)),
+    PlanetaDetectable("4", "mars", "Marte", 1.2f, 0.8f, Color(0xFFF44336), Color(0xFFE57373)),
+    PlanetaDetectable("5", "jupiter", "Júpiter", 1.2f, 0.8f, Color(0xFFFF5722), Color(0xFFFF8A65)),
+    PlanetaDetectable("6", "saturn", "Saturno", 1.2f, 0.8f, Color(0xFFFFC107), Color(0xFFFFD54F)),
+    PlanetaDetectable("7", "uranus", "Urano", 1.2f, 0.8f, Color(0xFF00BCD4), Color(0xFF4DD0E1)),
+    PlanetaDetectable("8", "neptune", "Neptuno", 1.2f, 0.8f, Color(0xFF3F51B5), Color(0xFF7986CB))
 )
 
 class ModelCameraActivity : ComponentActivity() {
@@ -132,14 +138,13 @@ fun CameraARView(
     val repository = remember { PlanetRepository() }
     val scope = rememberCoroutineScope()
 
-    // CRÍTICO: Usar AtomicBoolean para flags thread-safe
     val isDisposed = remember { AtomicBoolean(false) }
     val isDisposing = remember { AtomicBoolean(false) }
     val canAnimate = remember { AtomicBoolean(false) }
 
     var planetaActual by remember { mutableStateOf<PlanetaDetectable?>(null) }
     var mostrarModelo3D by remember { mutableStateOf(false) }
-    var ultimaDeteccion by remember { mutableStateOf(0L) }
+    var isDetectionEnabled by remember { mutableStateOf(true) }
     var isLoadingModel by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -156,10 +161,41 @@ fun CameraARView(
     val cameraNode = rememberCameraNode(engine)
     var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
 
-    // Función para limpiar modelo
+    BackHandler {
+        if (!isDisposed.get() && !isDisposing.getAndSet(true)) {
+            Log.d("ModelCamera", "Back físico presionado")
+            scope.launch {
+                try {
+                    canAnimate.set(false)
+                    animationJob?.cancel()
+                    animationJob = null
+                    delay(150)
+
+                    mostrarModelo3D = false
+                    delay(200)
+
+                    childNodes = emptyList()
+                    delay(350)
+
+                    cameraProvider?.unbindAll()
+                    cameraProvider = null
+                    delay(100)
+
+                    isDisposed.set(true)
+                    delay(100)
+
+                    onBackClick()
+                } catch (e: Exception) {
+                    Log.e("ModelCamera", "Error en back: ${e.message}", e)
+                    isDisposed.set(true)
+                    onBackClick()
+                }
+            }
+        }
+    }
+
     fun cleanupModel() {
         Log.d("ModelCamera", "cleanupModel: Iniciando limpieza")
-
         canAnimate.set(false)
         animationJob?.cancel()
         animationJob = null
@@ -176,6 +212,7 @@ fun CameraARView(
     LaunchedEffect(planetaActual, isDisposed.get()) {
         if (planetaActual != null && !isLoadingModel && !isDisposed.get()) {
             isLoadingModel = true
+            isDetectionEnabled = false
             errorMessage = null
             Log.d("ModelCamera", "Cargando planeta: ${planetaActual?.nombrePlaneta}")
 
@@ -210,6 +247,7 @@ fun CameraARView(
                                         errorMessage = "Archivo no encontrado"
                                         isLoadingModel = false
                                         planetaActual = null
+                                        isDetectionEnabled = true
                                         return@fold
                                     }
 
@@ -243,14 +281,15 @@ fun CameraARView(
 
                                         delay(100)
                                         mostrarModelo3D = true
-                                        canAnimate.set(true) // Habilitar animación AHORA
-                                        Log.d("ModelCamera", "Modelo cargado y mostrado")
+                                        canAnimate.set(true)
+                                        Log.d("ModelCamera", "Modelo cargado - Detección PAUSADA")
                                     }
                                     isLoadingModel = false
                                 } catch (e: Exception) {
                                     if (!isDisposed.get()) {
                                         errorMessage = "Error: ${e.message}"
                                         planetaActual = null
+                                        isDetectionEnabled = true
                                     }
                                     isLoadingModel = false
                                     Log.e("ModelCamera", "Error cargando modelo", e)
@@ -260,6 +299,7 @@ fun CameraARView(
                                 if (!isDisposed.get()) {
                                     errorMessage = "Error descargando: ${error.message}"
                                     planetaActual = null
+                                    isDetectionEnabled = true
                                 }
                                 isLoadingModel = false
                             }
@@ -269,6 +309,7 @@ fun CameraARView(
                         if (!isDisposed.get()) {
                             errorMessage = "Error cargando datos: ${error.message}"
                             planetaActual = null
+                            isDetectionEnabled = true
                         }
                         isLoadingModel = false
                     }
@@ -277,6 +318,7 @@ fun CameraARView(
                 if (!isDisposed.get()) {
                     errorMessage = "Error: ${e.message}"
                     planetaActual = null
+                    isDetectionEnabled = true
                 }
                 isLoadingModel = false
                 Log.e("ModelCamera", "Error general", e)
@@ -284,7 +326,7 @@ fun CameraARView(
         }
     }
 
-    // Animación de rotación - COMPLETAMENTE REDISEÑADA
+    // Animación de rotación
     LaunchedEffect(canAnimate.get(), childNodes) {
         animationJob?.cancel()
         animationJob = null
@@ -294,29 +336,19 @@ fun CameraARView(
             animationJob = launch {
                 try {
                     while (isActive && canAnimate.get() && !isDisposed.get() && !isDisposing.get()) {
-                        // Verificación antes de cada operación
-                        if (!canAnimate.get() || isDisposed.get() || isDisposing.get()) {
-                            break
-                        }
+                        if (!canAnimate.get() || isDisposed.get() || isDisposing.get()) break
 
                         delay(16)
 
-                        // Verificación después del delay
-                        if (!canAnimate.get() || isDisposed.get() || isDisposing.get()) {
-                            break
-                        }
+                        if (!canAnimate.get() || isDisposed.get() || isDisposing.get()) break
 
-                        // Capturar nodo localmente
                         val currentNodes = childNodes
                         if (currentNodes.isEmpty()) break
 
-                        val node = currentNodes.firstOrNull()
-                        if (node == null) break
+                        val node = currentNodes.firstOrNull() ?: break
 
-                        // Incrementar rotación
                         rotationY = (rotationY + (planetaActual?.velocidadRotacion ?: 0.5f)) % 360f
 
-                        // Aplicar rotación con try-catch INDIVIDUAL
                         try {
                             if (canAnimate.get() && !isDisposed.get() && !isDisposing.get()) {
                                 node.rotation = io.github.sceneview.math.Rotation(0f, rotationY, 0f)
@@ -324,7 +356,6 @@ fun CameraARView(
                                 break
                             }
                         } catch (_: Exception) {
-                            // Cualquier error = salir inmediatamente
                             break
                         }
                     }
@@ -357,15 +388,14 @@ fun CameraARView(
                             .build()
 
                         imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
-                            if (!isDisposed.get() && !isDisposing.get()) {
+                            if (!isDisposed.get() && !isDisposing.get() && isDetectionEnabled) {
                                 detectarNumeroPlaneta(
                                     imageProxy = imageProxy,
                                     planetas = planetasDetectables,
                                     onPlanetaDetectado = { planeta ->
-                                        val ahora = System.currentTimeMillis()
-                                        if (ahora - ultimaDeteccion > 2000 && !isDisposed.get() && !isDisposing.get()) {
+                                        if (isDetectionEnabled && !isDisposed.get() && !isDisposing.get()) {
                                             planetaActual = planeta
-                                            ultimaDeteccion = ahora
+                                            Log.d("ModelCamera", "Planeta detectado, detección pausada")
                                         }
                                     }
                                 )
@@ -408,34 +438,69 @@ fun CameraARView(
         }
 
         // Loading
-        if (isLoadingModel) {
+        AnimatedVisibility(
+            visible = isLoadingModel,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.7f))
+                    .background(Color.Black.copy(alpha = 0.85f))
                     .zIndex(3f),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                Card(
+                    modifier = Modifier
+                        .padding(32.dp)
+                        .shadow(16.dp, RoundedCornerShape(24.dp)),
+                    colors = CardDefaults.cardColors(
+                        containerColor = planetaActual?.colorPrimario?.copy(alpha = 0.95f) ?: Color(0xFF1E1E1E)
+                    ),
+                    shape = RoundedCornerShape(24.dp)
                 ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(64.dp),
-                        color = Color.White
-                    )
-                    Text(
-                        text = "Cargando ${planetaActual?.nombrePlaneta}...",
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(20.dp),
+                        modifier = Modifier.padding(32.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.2f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(60.dp),
+                                color = Color.White,
+                                strokeWidth = 5.dp
+                            )
+                        }
+
+                        Text(
+                            text = "Cargando ${planetaActual?.nombrePlaneta}",
+                            color = Color.White,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Text(
+                            text = "Preparando experiencia 3D...",
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontSize = 14.sp
+                        )
+                    }
                 }
             }
         }
 
         // Error
-        errorMessage?.let { error ->
+        AnimatedVisibility(
+            visible = errorMessage != null,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+        ) {
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
@@ -444,46 +509,60 @@ fun CameraARView(
             ) {
                 Card(
                     colors = CardDefaults.cardColors(
-                        containerColor = Color.Red.copy(alpha = 0.9f)
+                        containerColor = Color(0xFFD32F2F)
                     ),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(20.dp),
+                    elevation = CardDefaults.cardElevation(12.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Text(
-                            text = "⚠️ Error",
+                            text = "⚠️",
+                            fontSize = 48.sp
+                        )
+                        Text(
+                            text = "Error al Cargar",
                             color = Color.White,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = error,
-                            color = Color.White,
-                            fontSize = 14.sp,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        errorMessage?.let {
+                            Text(
+                                text = it,
+                                color = Color.White.copy(alpha = 0.9f),
+                                fontSize = 14.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.padding(top = 8.dp)
+                        ) {
                             Button(
                                 onClick = {
                                     errorMessage = null
                                     isLoadingModel = false
-                                    cleanupModel()
-                                }
-                            ) {
-                                Text("Reintentar")
-                            }
-                            Button(
-                                onClick = {
-                                    errorMessage = null
-                                    planetaActual = null
+                                    isDetectionEnabled = true
                                     cleanupModel()
                                 },
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color.Gray
+                                    containerColor = Color.White
+                                )
+                            ) {
+                                Text("Reintentar", color = Color(0xFFD32F2F))
+                            }
+                            OutlinedButton(
+                                onClick = {
+                                    errorMessage = null
+                                    planetaActual = null
+                                    isDetectionEnabled = true
+                                    cleanupModel()
+                                },
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = Color.White
                                 )
                             ) {
                                 Text("Cancelar")
@@ -494,150 +573,150 @@ fun CameraARView(
             }
         }
 
-        // UI Superior - Botón de regreso simplificado
-        Column(
+        // UI Superior - Card de detección
+        AnimatedVisibility(
+            visible = planetaActual != null && !isLoadingModel,
+            enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
                 .align(Alignment.TopCenter)
-                .zIndex(2f),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(20.dp)
+                .zIndex(2f)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = planetaActual?.colorPrimario ?: Color(0xFF4CAF50)
+                ),
+                shape = RoundedCornerShape(24.dp),
+                elevation = CardDefaults.cardElevation(12.dp)
             ) {
-                IconButton(
-                    onClick = {
-                        if (!isDisposed.get() && !isDisposing.getAndSet(true)) {
-                            Log.d("ModelCamera", "Botón atrás presionado")
-                            scope.launch {
-                                try {
-                                    // 1. PRIMERO: Detener animación
-                                    canAnimate.set(false)
-                                    animationJob?.cancel()
-                                    animationJob = null
-                                    Log.d("ModelCamera", "✓ Animación cancelada")
-
-                                    delay(150)
-
-                                    // 2. Ocultar Scene
-                                    mostrarModelo3D = false
-                                    Log.d("ModelCamera", "✓ Scene ocultada")
-
-                                    delay(200)
-
-                                    // 3. Limpiar nodos
-                                    childNodes = emptyList()
-                                    Log.d("ModelCamera", "✓ Nodos limpiados")
-
-                                    delay(350)
-
-                                    // 4. Detener cámara
-                                    cameraProvider?.unbindAll()
-                                    cameraProvider = null
-                                    Log.d("ModelCamera", "✓ Cámara detenida")
-
-                                    delay(100)
-
-                                    // 5. Marcar disposed
-                                    isDisposed.set(true)
-
-                                    delay(100)
-
-                                    // 6. Salir
-                                    Log.d("ModelCamera", "✓ Cerrando activity")
-                                    onBackClick()
-                                } catch (e: Exception) {
-                                    Log.e("ModelCamera", "Error en back: ${e.message}", e)
-                                    isDisposed.set(true)
-                                    onBackClick()
-                                }
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .size(48.dp)
-                        .background(
-                            color = Color.Black.copy(alpha = 0.6f),
-                            shape = RoundedCornerShape(12.dp)
-                        )
+                Row(
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Volver",
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            AnimatedVisibility(
-                visible = planetaActual != null && !isLoadingModel,
-                enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut()
-            ) {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color(0xFF4CAF50).copy(alpha = 0.95f)
-                    ),
-                    shape = RoundedCornerShape(20.dp),
-                    elevation = CardDefaults.cardElevation(8.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Box(
+                        modifier = Modifier
+                            .size(50.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.3f)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Column {
-                            Text(
-                                text = "¡Número ${planetaActual?.numero} Detectado!",
-                                color = Color.White,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Planeta ${planetaActual?.nombrePlaneta} apareció",
-                                color = Color.White.copy(alpha = 0.95f),
-                                fontSize = 14.sp
-                            )
-                        }
+                        Text(
+                            text = planetaActual?.numero ?: "",
+                            color = Color.White,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Column {
+                        Text(
+                            text = "¡Número Detectado!",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                            text = planetaActual?.nombrePlaneta ?: "",
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
+        }
 
-            if (planetaActual == null && !isDisposed.get() && !isDisposing.get()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.Black.copy(alpha = 0.75f)
-                    ),
-                    shape = RoundedCornerShape(20.dp)
+        // Instrucciones - Cuando no hay planeta
+        AnimatedVisibility(
+            visible = planetaActual == null && !isDisposed.get() && !isDisposing.get(),
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically(),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(20.dp)
+                .zIndex(2f)
+        ) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFF1E1E1E).copy(alpha = 0.9f)
+                ),
+                shape = RoundedCornerShape(24.dp),
+                elevation = CardDefaults.cardElevation(8.dp),
+                modifier = Modifier.border(
+                    width = 1.dp,
+                    color = Color.White.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(24.dp)
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    Text(
+                        text = "🔍",
+                        fontSize = 40.sp
+                    )
+                    Text(
+                        text = "Busca Números del 1 al 8",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center
+                    )
+
+                    HorizontalDivider(
+                        color = Color.White.copy(alpha = 0.2f),
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+
+                    // Lista de planetas
                     Column(
-                        modifier = Modifier.padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = "🔍 Detecta planetas con números",
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        planetasDetectables.forEach { planeta ->
+                        planetasDetectables.chunked(2).forEach { row ->
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Text(planeta.nombrePlaneta, color = Color.White, fontSize = 14.sp)
-                                Text(
-                                    "→ Número ${planeta.numero}",
-                                    color = Color(0xFF4CAF50),
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                row.forEach { planeta ->
+                                    Card(
+                                        modifier = Modifier.weight(1f),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = planeta.colorPrimario.copy(alpha = 0.3f)
+                                        ),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .clip(CircleShape)
+                                                    .background(planeta.colorPrimario),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = planeta.numero,
+                                                    color = Color.White,
+                                                    fontSize = 16.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                            Text(
+                                                text = planeta.nombrePlaneta,
+                                                color = Color.White,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -645,78 +724,91 @@ fun CameraARView(
             }
         }
 
-        // Botón para ocultar
-        if (mostrarModelo3D && planetaActual != null && !isLoadingModel && !isDisposed.get() && !isDisposing.get()) {
+        // Botón para buscar otro planeta
+        AnimatedVisibility(
+            visible = mostrarModelo3D && planetaActual != null && !isLoadingModel && !isDisposed.get() && !isDisposing.get(),
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(24.dp)
+                .zIndex(2f)
+        ) {
             Column(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(20.dp)
-                    .fillMaxWidth()
-                    .zIndex(2f),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Button(
                     onClick = {
                         planetaActual = null
                         errorMessage = null
                         rotationY = 0f
+                        isDetectionEnabled = true
                         cleanupModel()
+                        Log.d("ModelCamera", "Detección reactivada")
                     },
-                    modifier = Modifier.fillMaxWidth(0.85f),
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .height(64.dp)
+                        .shadow(12.dp, RoundedCornerShape(20.dp)),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFE91E63)
+                        containerColor = planetaActual?.colorPrimario ?: Color(0xFFE91E63)
                     ),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(20.dp)
                 ) {
-                    Text(
-                        "🔄 Detectar Otro Planeta",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "🔍",
+                            fontSize = 24.sp
+                        )
+                        Column(
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            Text(
+                                text = "Buscar Otro Planeta",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Detecta un nuevo número",
+                                fontSize = 12.sp,
+                                color = Color.White.copy(alpha = 0.9f)
+                            )
+                        }
+                    }
                 }
-
-                Text(
-                    text = "Apunta a otro número para cambiar de planeta",
-                    color = Color.White.copy(alpha = 0.8f),
-                    fontSize = 12.sp,
-                    textAlign = TextAlign.Center
-                )
             }
         }
     }
 
-    // DISPOSE MEJORADO
+    // DISPOSE
     DisposableEffect(Unit) {
         onDispose {
             Log.d("ModelCamera", "=== DISPOSE: Iniciando secuencia SEGURA ===")
             isDisposing.set(true)
 
             try {
-                // 1. CRÍTICO: Detener animación PRIMERO
                 canAnimate.set(false)
                 animationJob?.cancel()
                 animationJob = null
                 Log.d("ModelCamera", "✓ Animación cancelada")
 
-                // 2. Esperar a que termine cualquier frame
                 Thread.sleep(200)
 
-                // 3. Ocultar Scene
                 mostrarModelo3D = false
                 Log.d("ModelCamera", "✓ Scene ocultada")
 
-                // 4. Esperar más tiempo
                 Thread.sleep(300)
 
-                // 5. Limpiar nodos
                 childNodes = emptyList()
                 Log.d("ModelCamera", "✓ Nodos limpiados")
 
-                // 6. CRÍTICO: Esperar a Engine
                 Thread.sleep(500)
 
-                // 7. Detener cámara
                 try {
                     cameraProvider?.unbindAll()
                     cameraProvider = null
@@ -725,7 +817,6 @@ fun CameraARView(
                     Log.e("ModelCamera", "Error deteniendo cámara: ${e.message}")
                 }
 
-                // 8. Cerrar executor
                 try {
                     cameraExecutor.shutdown()
                     if (!cameraExecutor.awaitTermination(2, TimeUnit.SECONDS)) {
@@ -736,7 +827,6 @@ fun CameraARView(
                     Log.e("ModelCamera", "Error cerrando executor: ${e.message}")
                 }
 
-                // 9. Marcar como disposed
                 isDisposed.set(true)
 
                 Log.d("ModelCamera", "=== DISPOSE COMPLETADO ===")
@@ -786,28 +876,64 @@ fun PermissionDeniedScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF1A237E),
+                        Color(0xFF000051)
+                    )
+                )
+            ),
         contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(32.dp)
+        Card(
+            modifier = Modifier
+                .padding(32.dp)
+                .shadow(16.dp, RoundedCornerShape(24.dp)),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.White.copy(alpha = 0.95f)
+            ),
+            shape = RoundedCornerShape(24.dp)
         ) {
-            Text("📷", fontSize = 72.sp)
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(
-                "Permiso de Cámara Necesario",
-                color = Color.White,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                "Esta función necesita acceso a la cámara para detectar números y mostrar planetas en 3D.",
-                color = Color.White.copy(alpha = 0.85f),
-                fontSize = 15.sp,
-                textAlign = TextAlign.Center
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(32.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFE3F2FD)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("📷", fontSize = 56.sp)
+                }
+
+                Text(
+                    "Permiso de Cámara",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1A237E)
+                )
+
+                Text(
+                    "Esta aplicación necesita acceso a tu cámara para detectar números y mostrar planetas en realidad aumentada.",
+                    fontSize = 15.sp,
+                    textAlign = TextAlign.Center,
+                    color = Color(0xFF424242),
+                    lineHeight = 22.sp
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    "Por favor, habilita el permiso en la configuración de tu dispositivo.",
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center,
+                    color = Color(0xFF757575)
+                )
+            }
         }
     }
 }
