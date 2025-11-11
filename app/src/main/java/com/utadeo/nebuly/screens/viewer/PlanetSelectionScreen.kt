@@ -1,6 +1,5 @@
 package com.utadeo.nebuly.screens.viewer
 
-import android.app.Activity
 import android.content.Intent
 import androidx.compose.animation.*
 import androidx.compose.foundation.Image
@@ -12,6 +11,8 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.utadeo.nebuly.components.BackButton
 import com.utadeo.nebuly.data.models.PlanetPreview
@@ -86,26 +88,55 @@ fun PlanetSelectionScreen(
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Header
-            TopAppBar(
-                title = {
+            // Header con botón de volver y cámara
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Botón de volver
+                BackButton(
+                    onClick = onBackClick
+                )
+
+                // Título
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Text(
-                        text = "Explora la Tierra",
+                        text = "Explora el universo",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = Color.White,
+                        fontSize = 22.sp
                     )
-                },
-                navigationIcon = {
-                    BackButton(
-                        onClick = onBackClick,
-                        modifier = Modifier.padding(start = 8.dp)
+                }
+
+                // Botón de cámara AR
+                FloatingActionButton(
+                    onClick = {
+                        val intent = Intent(context, ModelCameraActivity::class.java)
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.size(56.dp),
+                    containerColor = Color(0xFF6A1B9A),
+                    contentColor = Color.White,
+                    elevation = FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 6.dp,
+                        pressedElevation = 12.dp
                     )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
-            )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CameraAlt,
+                        contentDescription = "Detector AR de Planetas",
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+
 
             when {
                 isLoading -> {
@@ -140,7 +171,7 @@ fun PlanetSelectionScreen(
                             modifier = Modifier.padding(24.dp)
                         ) {
                             Text(
-                                text = "Error",
+                                text = "⚠️ Error",
                                 color = Color.Red,
                                 style = MaterialTheme.typography.headlineMedium
                             )
