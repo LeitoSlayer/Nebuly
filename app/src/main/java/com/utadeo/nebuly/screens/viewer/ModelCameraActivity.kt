@@ -15,6 +15,8 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,7 +34,6 @@ import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
-import com.utadeo.nebuly.components.BackButton
 import com.utadeo.nebuly.data.models.repository.PlanetRepository
 import io.github.sceneview.Scene
 import io.github.sceneview.math.Position
@@ -42,11 +43,13 @@ import io.github.sceneview.rememberEngine
 import io.github.sceneview.rememberModelLoader
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.isActive
 import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 
-// Mapeo de números a IDs de planetas en Firebase
 data class PlanetaDetectable(
     val numero: String,
     val planetId: String,
@@ -55,7 +58,6 @@ data class PlanetaDetectable(
     val velocidadRotacion: Float = 0.5f
 )
 
-// Lista de planetas detectables (1-8 corresponden a los 8 planetas)
 val planetasDetectables = listOf(
     PlanetaDetectable("1", "mercury", "Mercurio", 1.2f, 0.8f),
     PlanetaDetectable("2", "venus", "Venus", 1.2f, 0.8f),
@@ -68,40 +70,16 @@ val planetasDetectables = listOf(
 )
 
 class ModelCameraActivity : ComponentActivity() {
-    private var cameraExecutor: ExecutorService? = null
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        cameraExecutor = Executors.newSingleThreadExecutor()
-
         setContent {
             MaterialTheme {
                 ModelCameraScreen(
                     cacheDir = cacheDir,
                     filesDir = filesDir,
-                    cameraExecutor = cameraExecutor!!,
-                    onBackClick = {
-                        // Limpieza antes de cerrar
-                        try {
-                            cameraExecutor?.shutdown()
-                            cameraExecutor = null
-                        } catch (e: Exception) {
-                            Log.e("ModelCamera", "Error cerrando executor: ${e.message}")
-                        }
-                        finish()
-                    }
+                    onBackClick = { finish() }
                 )
             }
-        }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        try {
-            cameraExecutor?.shutdown()
-            cameraExecutor = null
-        } catch (e: Exception) {
-            Log.e("ModelCamera", "Error en onDestroy: ${e.message}")
         }
     }
 }
@@ -110,7 +88,6 @@ class ModelCameraActivity : ComponentActivity() {
 fun ModelCameraScreen(
     cacheDir: File,
     filesDir: File,
-    cameraExecutor: ExecutorService,
     onBackClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -139,7 +116,6 @@ fun ModelCameraScreen(
         CameraARView(
             cacheDir = cacheDir,
             filesDir = filesDir,
-            cameraExecutor = cameraExecutor,
             onBackClick = onBackClick
         )
     } else {
@@ -151,134 +127,211 @@ fun ModelCameraScreen(
 fun CameraARView(
     cacheDir: File,
     filesDir: File,
-    cameraExecutor: ExecutorService,
     onBackClick: () -> Unit
 ) {
     val repository = remember { PlanetRepository() }
     val scope = rememberCoroutineScope()
+
+    // CRÍTICO: Usar AtomicBoolean para flags thread-safe
+    val isDisposed = remember { AtomicBoolean(false) }
+    val isDisposing = remember { AtomicBoolean(false) }
+    val canAnimate = remember { AtomicBoolean(false) }
 
     var planetaActual by remember { mutableStateOf<PlanetaDetectable?>(null) }
     var mostrarModelo3D by remember { mutableStateOf(false) }
     var ultimaDeteccion by remember { mutableStateOf(0L) }
     var isLoadingModel by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var isExiting by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
 
-    var modelNode by remember { mutableStateOf<ModelNode?>(null) }
+    var childNodes by remember { mutableStateOf<List<ModelNode>>(emptyList()) }
     var rotationY by remember { mutableStateOf(0f) }
+    var animationJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+
     val engine = rememberEngine()
     val modelLoader = rememberModelLoader(engine)
     val cameraNode = rememberCameraNode(engine)
     var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
 
-    // Cargar modelo desde Firebase cuando cambia el planeta
-    LaunchedEffect(planetaActual) {
-        if (planetaActual != null && !isLoadingModel && !isExiting) {
+    // Función para limpiar modelo
+    fun cleanupModel() {
+        Log.d("ModelCamera", "cleanupModel: Iniciando limpieza")
+
+        canAnimate.set(false)
+        animationJob?.cancel()
+        animationJob = null
+        mostrarModelo3D = false
+
+        scope.launch {
+            delay(100)
+            childNodes = emptyList()
+            Log.d("ModelCamera", "Nodos limpiados")
+        }
+    }
+
+    // Cargar modelo desde Firebase
+    LaunchedEffect(planetaActual, isDisposed.get()) {
+        if (planetaActual != null && !isLoadingModel && !isDisposed.get()) {
             isLoadingModel = true
             errorMessage = null
+            Log.d("ModelCamera", "Cargando planeta: ${planetaActual?.nombrePlaneta}")
 
-            scope.launch {
-                try {
-                    // Limpiar modelo anterior primero
-                    modelNode = null
-                    mostrarModelo3D = false
+            try {
+                cleanupModel()
+                delay(200)
 
-                    // 1. Obtener datos del planeta desde Firestore
-                    val result = repository.getPlanetData(planetaActual!!.planetId)
+                val result = repository.getPlanetData(planetaActual!!.planetId)
 
-                    result.fold(
-                        onSuccess = { planetData ->
-                            // 2. Descargar modelo desde Firebase Storage
-                            val downloadResult = repository.downloadPlanetModel(
-                                planetData.modelUrl,
-                                cacheDir
-                            )
+                result.fold(
+                    onSuccess = { planetData ->
+                        if (isDisposed.get()) {
+                            isLoadingModel = false
+                            return@LaunchedEffect
+                        }
 
-                            downloadResult.fold(
-                                onSuccess = { localPath ->
-                                    try {
-                                        val sourceFile = File(localPath)
-                                        if (!sourceFile.exists()) {
-                                            errorMessage = "Archivo no encontrado"
-                                            isLoadingModel = false
-                                            planetaActual = null
-                                            return@fold
-                                        }
+                        val downloadResult = repository.downloadPlanetModel(
+                            planetData.modelUrl,
+                            cacheDir
+                        )
 
-                                        // Copiar a filesDir
-                                        val modelsDir = File(filesDir, "models")
-                                        if (!modelsDir.exists()) {
-                                            modelsDir.mkdirs()
-                                        }
+                        downloadResult.fold(
+                            onSuccess = { localPath ->
+                                if (isDisposed.get()) {
+                                    isLoadingModel = false
+                                    return@fold
+                                }
 
-                                        val destFile = File(modelsDir, sourceFile.name)
-                                        sourceFile.copyTo(destFile, overwrite = true)
-
-                                        // Cargar el modelo
-                                        val instance = modelLoader.createModelInstance(file = destFile)
-
-                                        if (instance != null && !isExiting) {
-                                            modelNode = ModelNode(
-                                                modelInstance = instance,
-                                                scaleToUnits = planetaActual!!.escala,
-                                                centerOrigin = Position(0f, 0f, 0f)
-                                            ).apply {
-                                                position = Position(0f, 0f, 0f)
-                                            }
-                                            cameraNode.position = Position(0f, 0f, 4.5f)
-                                            cameraNode.lookAt(Position(0f, 0f, 0f))
-                                            mostrarModelo3D = true
-                                            isLoadingModel = false
-                                        } else {
-                                            errorMessage = "Error al crear instancia del modelo"
-                                            isLoadingModel = false
-                                            planetaActual = null
-                                        }
-                                    } catch (e: Exception) {
-                                        errorMessage = "Error: ${e.message}"
+                                try {
+                                    val sourceFile = File(localPath)
+                                    if (!sourceFile.exists()) {
+                                        errorMessage = "Archivo no encontrado"
                                         isLoadingModel = false
                                         planetaActual = null
-                                        Log.e("ModelCamera", "Error cargando modelo", e)
+                                        return@fold
                                     }
-                                },
-                                onFailure = { error ->
-                                    errorMessage = "Error descargando: ${error.message}"
+
+                                    val modelsDir = File(filesDir, "models")
+                                    if (!modelsDir.exists()) {
+                                        modelsDir.mkdirs()
+                                    }
+
+                                    val destFile = File(modelsDir, sourceFile.name)
+                                    sourceFile.copyTo(destFile, overwrite = true)
+
+                                    if (isDisposed.get()) {
+                                        isLoadingModel = false
+                                        return@fold
+                                    }
+
+                                    val instance = modelLoader.createModelInstance(file = destFile)
+
+                                    if (instance != null && !isDisposed.get()) {
+                                        val newNode = ModelNode(
+                                            modelInstance = instance,
+                                            scaleToUnits = planetaActual!!.escala,
+                                            centerOrigin = Position(0f, 0f, 0f)
+                                        ).apply {
+                                            position = Position(0f, 0f, 0f)
+                                        }
+
+                                        childNodes = listOf(newNode)
+                                        cameraNode.position = Position(0f, 0f, 4.5f)
+                                        cameraNode.lookAt(Position(0f, 0f, 0f))
+
+                                        delay(100)
+                                        mostrarModelo3D = true
+                                        canAnimate.set(true) // Habilitar animación AHORA
+                                        Log.d("ModelCamera", "Modelo cargado y mostrado")
+                                    }
                                     isLoadingModel = false
+                                } catch (e: Exception) {
+                                    if (!isDisposed.get()) {
+                                        errorMessage = "Error: ${e.message}"
+                                        planetaActual = null
+                                    }
+                                    isLoadingModel = false
+                                    Log.e("ModelCamera", "Error cargando modelo", e)
+                                }
+                            },
+                            onFailure = { error ->
+                                if (!isDisposed.get()) {
+                                    errorMessage = "Error descargando: ${error.message}"
                                     planetaActual = null
                                 }
-                            )
-                        },
-                        onFailure = { error ->
+                                isLoadingModel = false
+                            }
+                        )
+                    },
+                    onFailure = { error ->
+                        if (!isDisposed.get()) {
                             errorMessage = "Error cargando datos: ${error.message}"
-                            isLoadingModel = false
                             planetaActual = null
                         }
-                    )
-                } catch (e: Exception) {
+                        isLoadingModel = false
+                    }
+                )
+            } catch (e: Exception) {
+                if (!isDisposed.get()) {
                     errorMessage = "Error: ${e.message}"
-                    isLoadingModel = false
                     planetaActual = null
-                    Log.e("ModelCamera", "Error general", e)
                 }
+                isLoadingModel = false
+                Log.e("ModelCamera", "Error general", e)
             }
         }
     }
 
-    // Animación de rotación
-    LaunchedEffect(mostrarModelo3D, modelNode, planetaActual) {
-        if (mostrarModelo3D && modelNode != null && planetaActual != null && !isExiting) {
-            try {
-                while (mostrarModelo3D && !isExiting) {
-                    delay(16)
-                    rotationY += planetaActual!!.velocidadRotacion
-                    if (rotationY >= 360f) rotationY = 0f
-                    modelNode?.rotation = io.github.sceneview.math.Rotation(0f, rotationY, 0f)
+    // Animación de rotación - COMPLETAMENTE REDISEÑADA
+    LaunchedEffect(canAnimate.get(), childNodes) {
+        animationJob?.cancel()
+        animationJob = null
+
+        if (canAnimate.get() && childNodes.isNotEmpty()) {
+            Log.d("ModelCamera", "Iniciando animación de rotación")
+            animationJob = launch {
+                try {
+                    while (isActive && canAnimate.get() && !isDisposed.get() && !isDisposing.get()) {
+                        // Verificación antes de cada operación
+                        if (!canAnimate.get() || isDisposed.get() || isDisposing.get()) {
+                            break
+                        }
+
+                        delay(16)
+
+                        // Verificación después del delay
+                        if (!canAnimate.get() || isDisposed.get() || isDisposing.get()) {
+                            break
+                        }
+
+                        // Capturar nodo localmente
+                        val currentNodes = childNodes
+                        if (currentNodes.isEmpty()) break
+
+                        val node = currentNodes.firstOrNull()
+                        if (node == null) break
+
+                        // Incrementar rotación
+                        rotationY = (rotationY + (planetaActual?.velocidadRotacion ?: 0.5f)) % 360f
+
+                        // Aplicar rotación con try-catch INDIVIDUAL
+                        try {
+                            if (canAnimate.get() && !isDisposed.get() && !isDisposing.get()) {
+                                node.rotation = io.github.sceneview.math.Rotation(0f, rotationY, 0f)
+                            } else {
+                                break
+                            }
+                        } catch (_: Exception) {
+                            // Cualquier error = salir inmediatamente
+                            break
+                        }
+                    }
+                    Log.d("ModelCamera", "Animación detenida limpiamente")
+                } catch (e: Exception) {
+                    Log.d("ModelCamera", "Animación finalizada: ${e.message}")
                 }
-            } catch (e: Exception) {
-                Log.e("ModelCamera", "Error en animación de rotación", e)
             }
         }
     }
@@ -291,36 +344,38 @@ fun CameraARView(
                 val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
 
                 cameraProviderFuture.addListener({
-                    cameraProvider = cameraProviderFuture.get()
-                    val preview = Preview.Builder().build().also {
-                        it.setSurfaceProvider(previewView.surfaceProvider)
-                    }
-
-                    val imageAnalysis = ImageAnalysis.Builder()
-                        .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                        .build()
-
-                    imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
-                        if (!isExiting) {
-                            detectarNumeroPlaneta(
-                                imageProxy = imageProxy,
-                                planetas = planetasDetectables,
-                                onPlanetaDetectado = { planeta ->
-                                    val ahora = System.currentTimeMillis()
-                                    if (ahora - ultimaDeteccion > 2000 && !isExiting) {
-                                        planetaActual = planeta
-                                        ultimaDeteccion = ahora
-                                    }
-                                }
-                            )
-                        } else {
-                            imageProxy.close()
-                        }
-                    }
-
-                    val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+                    if (isDisposed.get() || isDisposing.get()) return@addListener
 
                     try {
+                        cameraProvider = cameraProviderFuture.get()
+                        val preview = Preview.Builder().build().also {
+                            it.setSurfaceProvider(previewView.surfaceProvider)
+                        }
+
+                        val imageAnalysis = ImageAnalysis.Builder()
+                            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                            .build()
+
+                        imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
+                            if (!isDisposed.get() && !isDisposing.get()) {
+                                detectarNumeroPlaneta(
+                                    imageProxy = imageProxy,
+                                    planetas = planetasDetectables,
+                                    onPlanetaDetectado = { planeta ->
+                                        val ahora = System.currentTimeMillis()
+                                        if (ahora - ultimaDeteccion > 2000 && !isDisposed.get() && !isDisposing.get()) {
+                                            planetaActual = planeta
+                                            ultimaDeteccion = ahora
+                                        }
+                                    }
+                                )
+                            } else {
+                                imageProxy.close()
+                            }
+                        }
+
+                        val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
                         cameraProvider?.unbindAll()
                         cameraProvider?.bindToLifecycle(
                             lifecycleOwner,
@@ -329,7 +384,7 @@ fun CameraARView(
                             imageAnalysis
                         )
                     } catch (e: Exception) {
-                        Log.e("ModelCamera", "Error al iniciar cámara: ${e.message}")
+                        Log.e("ModelCamera", "Error iniciar cámara: ${e.message}")
                     }
                 }, ContextCompat.getMainExecutor(ctx))
                 previewView
@@ -338,27 +393,21 @@ fun CameraARView(
         )
 
         // Modelo 3D
-        AnimatedVisibility(
-            visible = mostrarModelo3D && modelNode != null && !isExiting,
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
-            if (modelNode != null) {
-                Scene(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Transparent)
-                        .zIndex(1f),
-                    engine = engine,
-                    modelLoader = modelLoader,
-                    cameraNode = cameraNode,
-                    childNodes = listOf(modelNode!!),
-                    isOpaque = false
-                )
-            }
+        if (mostrarModelo3D && childNodes.isNotEmpty() && !isDisposed.get() && !isDisposing.get() && !isLoadingModel) {
+            Scene(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Transparent)
+                    .zIndex(1f),
+                engine = engine,
+                modelLoader = modelLoader,
+                cameraNode = cameraNode,
+                childNodes = childNodes,
+                isOpaque = false
+            )
         }
 
-        // Loading del modelo
+        // Loading
         if (isLoadingModel) {
             Box(
                 modifier = Modifier
@@ -385,8 +434,8 @@ fun CameraARView(
             }
         }
 
-        // Error message
-        if (errorMessage != null) {
+        // Error
+        errorMessage?.let { error ->
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
@@ -411,33 +460,27 @@ fun CameraARView(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = errorMessage ?: "",
+                            text = error,
                             color = Color.White,
                             fontSize = 14.sp,
                             textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(12.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
                                 onClick = {
                                     errorMessage = null
                                     isLoadingModel = false
-                                    mostrarModelo3D = false
-                                    modelNode = null
+                                    cleanupModel()
                                 }
                             ) {
                                 Text("Reintentar")
                             }
-                            Spacer(modifier = Modifier.width(8.dp))
                             Button(
                                 onClick = {
                                     errorMessage = null
-                                    isLoadingModel = false
-                                    mostrarModelo3D = false
-                                    modelNode = null
                                     planetaActual = null
+                                    cleanupModel()
                                 },
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color.Gray
@@ -451,7 +494,7 @@ fun CameraARView(
             }
         }
 
-        // UI Superior con BackButton
+        // UI Superior - Botón de regreso simplificado
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -464,42 +507,73 @@ fun CameraARView(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Start
             ) {
-                BackButton(
+                IconButton(
                     onClick = {
-                        if (!isExiting) {
-                            isExiting = true
+                        if (!isDisposed.get() && !isDisposing.getAndSet(true)) {
+                            Log.d("ModelCamera", "Botón atrás presionado")
                             scope.launch {
                                 try {
-                                    // Detener animaciones
+                                    // 1. PRIMERO: Detener animación
+                                    canAnimate.set(false)
+                                    animationJob?.cancel()
+                                    animationJob = null
+                                    Log.d("ModelCamera", "✓ Animación cancelada")
+
+                                    delay(150)
+
+                                    // 2. Ocultar Scene
                                     mostrarModelo3D = false
-                                    isLoadingModel = false
+                                    Log.d("ModelCamera", "✓ Scene ocultada")
 
-                                    delay(100)
+                                    delay(200)
 
-                                    // Desenlazar cámara
+                                    // 3. Limpiar nodos
+                                    childNodes = emptyList()
+                                    Log.d("ModelCamera", "✓ Nodos limpiados")
+
+                                    delay(350)
+
+                                    // 4. Detener cámara
                                     cameraProvider?.unbindAll()
-
-                                    // Limpiar recursos 3D
-                                    modelNode = null
-                                    planetaActual = null
-                                    errorMessage = null
+                                    cameraProvider = null
+                                    Log.d("ModelCamera", "✓ Cámara detenida")
 
                                     delay(100)
 
-                                    // Navegar
+                                    // 5. Marcar disposed
+                                    isDisposed.set(true)
+
+                                    delay(100)
+
+                                    // 6. Salir
+                                    Log.d("ModelCamera", "✓ Cerrando activity")
                                     onBackClick()
                                 } catch (e: Exception) {
-                                    Log.e("ModelCamera", "Error al salir: ${e.message}", e)
+                                    Log.e("ModelCamera", "Error en back: ${e.message}", e)
+                                    isDisposed.set(true)
                                     onBackClick()
                                 }
                             }
                         }
                     },
                     modifier = Modifier
-                )
+                        .size(48.dp)
+                        .background(
+                            color = Color.Black.copy(alpha = 0.6f),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Volver",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
+
             AnimatedVisibility(
                 visible = planetaActual != null && !isLoadingModel,
                 enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
@@ -533,7 +607,7 @@ fun CameraARView(
                 }
             }
 
-            if (planetaActual == null && !isExiting) {
+            if (planetaActual == null && !isDisposed.get() && !isDisposing.get()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Card(
                     colors = CardDefaults.cardColors(
@@ -572,7 +646,7 @@ fun CameraARView(
         }
 
         // Botón para ocultar
-        if (mostrarModelo3D && planetaActual != null && !isLoadingModel && !isExiting) {
+        if (mostrarModelo3D && planetaActual != null && !isLoadingModel && !isDisposed.get() && !isDisposing.get()) {
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -584,23 +658,10 @@ fun CameraARView(
             ) {
                 Button(
                     onClick = {
-                        try {
-                            mostrarModelo3D = false
-                            rotationY = 0f
-
-                            scope.launch {
-                                delay(100)
-                                modelNode = null
-                                planetaActual = null
-                                errorMessage = null
-                            }
-                        } catch (e: Exception) {
-                            Log.e("ModelCamera", "Error al ocultar planeta: ${e.message}")
-                            modelNode = null
-                            planetaActual = null
-                            mostrarModelo3D = false
-                            errorMessage = null
-                        }
+                        planetaActual = null
+                        errorMessage = null
+                        rotationY = 0f
+                        cleanupModel()
                     },
                     modifier = Modifier.fillMaxWidth(0.85f),
                     colors = ButtonDefaults.buttonColors(
@@ -619,23 +680,68 @@ fun CameraARView(
                     text = "Apunta a otro número para cambiar de planeta",
                     color = Color.White.copy(alpha = 0.8f),
                     fontSize = 12.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    textAlign = TextAlign.Center
                 )
             }
         }
     }
 
+    // DISPOSE MEJORADO
     DisposableEffect(Unit) {
         onDispose {
+            Log.d("ModelCamera", "=== DISPOSE: Iniciando secuencia SEGURA ===")
+            isDisposing.set(true)
+
             try {
-                isExiting = true
-                cameraProvider?.unbindAll()
-                cameraProvider = null
-                modelNode = null
-                Log.d("ModelCamera", "Recursos limpiados en DisposableEffect")
+                // 1. CRÍTICO: Detener animación PRIMERO
+                canAnimate.set(false)
+                animationJob?.cancel()
+                animationJob = null
+                Log.d("ModelCamera", "✓ Animación cancelada")
+
+                // 2. Esperar a que termine cualquier frame
+                Thread.sleep(200)
+
+                // 3. Ocultar Scene
+                mostrarModelo3D = false
+                Log.d("ModelCamera", "✓ Scene ocultada")
+
+                // 4. Esperar más tiempo
+                Thread.sleep(300)
+
+                // 5. Limpiar nodos
+                childNodes = emptyList()
+                Log.d("ModelCamera", "✓ Nodos limpiados")
+
+                // 6. CRÍTICO: Esperar a Engine
+                Thread.sleep(500)
+
+                // 7. Detener cámara
+                try {
+                    cameraProvider?.unbindAll()
+                    cameraProvider = null
+                    Log.d("ModelCamera", "✓ Cámara detenida")
+                } catch (e: Exception) {
+                    Log.e("ModelCamera", "Error deteniendo cámara: ${e.message}")
+                }
+
+                // 8. Cerrar executor
+                try {
+                    cameraExecutor.shutdown()
+                    if (!cameraExecutor.awaitTermination(2, TimeUnit.SECONDS)) {
+                        cameraExecutor.shutdownNow()
+                    }
+                    Log.d("ModelCamera", "✓ Executor cerrado")
+                } catch (e: Exception) {
+                    Log.e("ModelCamera", "Error cerrando executor: ${e.message}")
+                }
+
+                // 9. Marcar como disposed
+                isDisposed.set(true)
+
+                Log.d("ModelCamera", "=== DISPOSE COMPLETADO ===")
             } catch (e: Exception) {
-                Log.e("ModelCamera", "Error en DisposableEffect: ${e.message}", e)
+                Log.e("ModelCamera", "Error CRÍTICO en dispose: ${e.message}", e)
             }
         }
     }
